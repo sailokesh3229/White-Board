@@ -1,7 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import Canvas from "../components/Canvas.jsx";
 import Toolbar from "../components/Toolbar.jsx";
+import StatusBadge from "../components/StatusBadge.jsx";
+import { socket } from "../lib/socket.js";
 
 export default function Board() {
   const { boardId } = useParams();
@@ -12,13 +14,26 @@ export default function Board() {
   const [size, setSize] = useState(4);
   const canvasRef = useRef(null);
 
+  // Connect while the board page is open. In development, React Strict Mode
+  // runs this effect twice (mount, cleanup, mount), so the cleanup must really
+  // disconnect, or each tab would leave an extra connection open.
+  useEffect(() => {
+    socket.connect();
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   function handleClear() {
     if (window.confirm("Clear the whole board?")) canvasRef.current.clear();
   }
 
   return (
     <main className="board-page">
-      <p className="board-id">Board: {boardId}</p>
+      <header className="board-header">
+        <span className="board-id">Board: {boardId}</span>
+        <StatusBadge />
+      </header>
       <Toolbar
         tool={tool}
         color={color}
