@@ -65,3 +65,9 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Commit: 8f72f0a
 - Tests: server 26 passed, client 18 passed
 - Notes: MongoDB 9.0.2 installed locally (Windows service, auto-start). 5 s timeouts (serverSelectionTimeoutMS, bufferTimeoutMS). Writes are queued per board so MongoDB keeps drawing order; failed writes are logged and the element stays in the cache. Load failure → `error:message`, socket leaves the room, server keeps running. Board is evicted from memory when its last socket leaves. Browser-checked: 4 elements saved in order to MongoDB; drawing survived a server restart; A redrew from the server after reconnecting. Not verified automatically: stopping MongoDB while the server runs (needs an admin terminal: `net stop MongoDB`).
+
+## Phase 9 — Names and online users (2026-10-15)
+- Status: done, awaiting manual verification
+- Commit: 8daca81
+- Tests: server 35 passed, client 18 passed
+- Notes: `sanitizeUser` also validates `userId` (fallback "u_unknown"). Join waits until the user has a name. Rename re-emits `board:join` on the same board (server updates the entry, re-sends `board:state`). `createdBy` now holds the real userId. Browser-checked: first-visit prompt, spaces-only rejected, no prompt after reload, same name twice in two tabs of one browser with correct "(you)", rename updates other tabs, closing a tab drops the count, other board lists only its own user, "Board cleared by <name>" toast, exactly one entry per tab after a server restart.
