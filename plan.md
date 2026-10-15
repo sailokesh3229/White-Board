@@ -335,6 +335,7 @@ For every phase: read the matching spec step first, implement its **Tasks**, the
 - `index.js` connects to MongoDB **before** listening and passes the Mongo-backed store to `createServer`. Tests keep using memory persistence.
 - Handlers are `async` with `try/catch`; a failed load sends `error:message` ("Could not load board, please try again") and does not crash. A failed append is logged; the element is still broadcast (the in-memory cache has it).
 - When the last socket leaves a room (on disconnect or board switch), call `store.evict(boardId)`.
+- Fail fast when MongoDB is unreachable: set `serverSelectionTimeoutMS: 5000` on connect and `mongoose.set("bufferTimeoutMS", 5000)`, so a stopped database produces "Could not load board" within ~5 s instead of hanging ~10 s.
 - README note (start a short README now): how to run MongoDB locally or use Atlas.
 
 **Automated checks**
@@ -367,7 +368,7 @@ For every phase: read the matching spec step first, implement its **Tasks**, the
 **Implement**
 - `lib/throttle.js`: hand-written `throttle(fn, ms)` with a trailing call (so the last position is always sent), plus a `cancel()` method. Add a comment explaining how it works.
 - Pointer move on the board wrapper → throttled `cursor:move` with board coordinates; `pointerleave` → `cursor:leave`.
-- Server: `cursor:move` validates numbers and uses `socket.volatile.to(boardId).emit("cursor:moved", {...})` with name/color from presence; `cursor:leave` and disconnect emit `cursor:left`. Ignore cursor events from sockets without a board or without presence.
+- Server: `cursor:move` validates numbers and uses `socket.volatile.to(boardId).emit("cursor:moved", {...})` with name/color from presence; `cursor:leave`, disconnect, **and switching boards** (sent to the old room) emit `cursor:left`. Ignore cursor events from sockets without a board or without presence.
 - `CursorLayer.jsx`: absolutely positioned cursors using percentages, `pointer-events: none`, CSS transition, arrow drawn with inline SVG in the user's color plus a name label. Remove cursors idle for 10 seconds (one interval timer, cleared on unmount). Clear all cursors on `board:state` (e.g., after a reconnect).
 
 **Automated checks**
@@ -385,7 +386,7 @@ For every phase: read the matching spec step first, implement its **Tasks**, the
 - Client: dedupe incoming elements by `id`; show `error:message` text as a toast.
 - Pointer robustness: track the active `pointerId`; ignore other pointers while drawing; treat `pointercancel` like `pointerup`.
 - Keyboard shortcuts P/E/R/C/L, ignored when focus is in an input, textarea, or the name modal.
-- Verify that emits during a disconnect are delivered after reconnect (Socket.IO buffers by default). Because the client re-joins on `connect`, ensure the `board:join` is emitted **before** any buffered `element:add` reaches the server. If ordering can't be guaranteed with the default buffer, implement a small client-side outbox: queue `element:add` while disconnected and flush after receiving `board:state`. Explain the choice in the report.
+- **Client-side outbox (required).** Socket.IO's built-in send buffer is flushed *before* the `connect` event fires, so buffered `element:add` messages would reach the server before the re-`board:join` and be ignored (the new socket has no `socket.data.boardId`). Therefore: while disconnected (or before the first `board:state` after a (re)join), queue `element:add` in a client outbox instead of emitting; after receiving `board:state`, merge queued elements into the local list and flush the outbox in order. Explain this in the report.
 - Server logging: `[board <id>] join <name>`, `leave`, `rejected element: <reason>`.
 - In development only (`import.meta.env.DEV`), expose `window.__socket` so the user can run the spec's console tests.
 
