@@ -37,3 +37,13 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Commit: 603a206
 - Tests: server 6 passed, client 14 passed
 - Notes: Server ignores `element:add` without an element (full validation in Phase 11). A remote clear keeps your in-progress stroke visible. Expected limitation: late joiners see an empty board (fixed in Phase 7). E2E check against the live dev server: CORS handshake allows http://localhost:5173 and a second client received the element.
+
+## Browser verification of Phases 3–5 (2026-10-15)
+- Checked in Chrome with two tabs on /board/test123:
+  - Shapes: rect dragged up-left, circle and line all correct. A click with no drag creates nothing.
+  - Sync: A → B (pen, all 3 shapes, eraser gap) and B → A both work.
+  - Clear: clearing in B wiped A and showed the "Board was cleared" toast.
+  - Connections: server log shows one open connection per tab (no Strict Mode leak).
+  - Reconnect: stopping the server turned the badge red; restarting turned it green without a refresh.
+  - Console: no errors or React warnings on page load.
+- Observed: the 16:9 board is taller than a ~700px-high laptop viewport, so the bottom needs scrolling.
