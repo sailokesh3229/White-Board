@@ -14,3 +14,40 @@ body {
 .app {
   padding: 16px;
 }
+
+.board-page {
+  padding: 16px;
+  max-width: 1632px;
+  margin: 0 auto;
+}
+
+.board-id {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* The wrapper keeps the board at 16:9 and supplies the white background.
+   The canvas itself stays transparent so the eraser (Phase 2) reveals white. */
+.board-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 1600px;
+  aspect-ratio: 16 / 9;
+  background: #fff;
+  border: 1px solid #d4d4d8;
+}
+
+.board-wrapper canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Stops the page from scrolling when drawing with a finger. */
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.debug-button {
+  margin-top: 8px;
+}
