@@ -19,3 +19,9 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Commit: 2a29fb6
 - Tests: server 2 passed, client 6 passed
 - Notes: Canvas exposes a `clear()` method to Board through a ref (React 19 `ref` prop + `useImperativeHandle`), so board data stays inside Canvas. Eraser strokes still store the current color, but drawing ignores it.
+
+## Phase 3 — Shapes (2026-10-15)
+- Status: done, awaiting manual verification
+- Commit: af2a409
+- Tests: server 2 passed, client 14 passed
+- Notes: Single-user whiteboard complete (spec milestone). Debug redraw button removed. A rectangle is kept if either side is ≥ 3 units (spec: ignore only when both are under 3).
