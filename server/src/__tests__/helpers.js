@@ -42,6 +42,21 @@ export function waitFor(socket, event, timeoutMs = 1000) {
   });
 }
 
+// Polls until predicate() is true, or rejects after timeoutMs.
+export async function waitUntil(predicate, timeoutMs = 1000) {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate()) {
+    if (Date.now() > deadline) throw new Error("waitUntil timed out");
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
+
+// Joins a board and waits until the server has put the socket in the room.
+export async function joinBoard(server, client, boardId) {
+  client.emit("board:join", { boardId });
+  await waitUntil(() => server.io.sockets.adapter.rooms.get(boardId)?.has(client.id));
+}
+
 // Resolves true if `event` arrives within ms, false otherwise. Used to check
 // that something was NOT received.
 export function receivedWithin(socket, event, ms = 200) {

@@ -11,8 +11,72 @@ body {
   background: #f4f4f5;
 }
 
-.app {
-  padding: 16px;
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Home page */
+.home,
+.message-page {
+  max-width: 480px;
+  margin: 48px auto;
+  padding: 0 16px;
+}
+
+.home-intro {
+  color: #52525b;
+}
+
+.primary-button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  background: #1971c2;
+  color: #fff;
+  font-weight: 600;
+}
+
+.join-form {
+  margin-top: 32px;
+}
+
+.join-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.join-row {
+  display: flex;
+  gap: 8px;
+}
+
+.join-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  font: inherit;
+  border: 1px solid #a1a1aa;
+  border-radius: 6px;
+}
+
+.join-row button,
+.copy-button {
+  padding: 6px 12px;
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.form-error {
+  margin: 6px 0 0;
+  color: #c92a2a;
+}
+
+.home-link {
+  color: #1971c2;
+  text-decoration: none;
 }
 
 .board-page {

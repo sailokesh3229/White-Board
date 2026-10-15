@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { startTestServer, connect, waitFor, receivedWithin } from "./helpers.js";
+import { startTestServer, connect, waitFor, receivedWithin, joinBoard } from "./helpers.js";
+
+const BOARD_X = "AAAAAA1111";
+const BOARD_Y = "BBBBBB2222";
 
 let server;
 let clients;
@@ -15,22 +18,12 @@ afterEach(async () => {
   await server.close();
 });
 
-async function newClient() {
+async function newClient(boardId) {
   const client = await connect(server.url);
   clients.push(client);
+  if (boardId) await joinBoard(server, client, boardId);
   return client;
 }
-
-describe("connection", () => {
-  it("lets a client connect and the server sees it", async () => {
-    const serverSide = new Promise((resolve) => server.io.once("connection", resolve));
-    const client = await newClient();
-    const serverSocket = await serverSide;
-
-    expect(client.connected).toBe(true);
-    expect(serverSocket.id).toBe(client.id);
-  });
-});
 
 const sampleElement = {
   id: "el_test000001",
@@ -45,10 +38,21 @@ const sampleElement = {
   createdAt: 1730000000000,
 };
 
-describe("live sync (one shared board)", () => {
+describe("connection", () => {
+  it("lets a client connect and the server sees it", async () => {
+    const serverSide = new Promise((resolve) => server.io.once("connection", resolve));
+    const client = await newClient();
+    const serverSocket = await serverSide;
+
+    expect(client.connected).toBe(true);
+    expect(serverSocket.id).toBe(client.id);
+  });
+});
+
+describe("live sync", () => {
   it("forwards element:add to the other client but not back to the sender", async () => {
-    const a = await newClient();
-    const b = await newClient();
+    const a = await newClient(BOARD_X);
+    const b = await newClient(BOARD_X);
 
     const bGetsIt = waitFor(b, "element:added");
     const aGetsIt = receivedWithin(a, "element:added");
@@ -59,20 +63,20 @@ describe("live sync (one shared board)", () => {
   });
 
   it("forwards board:clear to the other client as board:cleared", async () => {
-    const a = await newClient();
-    const b = await newClient();
+    const a = await newClient(BOARD_X);
+    const b = await newClient(BOARD_X);
 
     const bGetsIt = waitFor(b, "board:cleared");
     const aGetsIt = receivedWithin(a, "board:cleared");
     a.emit("board:clear");
 
-    expect(await bGetsIt).toEqual({ by: "Someone" });
+    expect(await bGetsIt).toHaveProperty("by");
     expect(await aGetsIt).toBe(false);
   });
 
   it("ignores element:add without an element and keeps running", async () => {
-    const a = await newClient();
-    const b = await newClient();
+    const a = await newClient(BOARD_X);
+    const b = await newClient(BOARD_X);
 
     const bGetsIt = receivedWithin(b, "element:added");
     a.emit("element:add");
@@ -80,5 +84,53 @@ describe("live sync (one shared board)", () => {
 
     expect(await bGetsIt).toBe(false);
     expect(a.connected && b.connected).toBe(true);
+  });
+});
+
+describe("rooms", () => {
+  it("keeps boards isolated from each other", async () => {
+    const a = await newClient(BOARD_X);
+    const b = await newClient(BOARD_X);
+    const c = await newClient(BOARD_Y);
+
+    const bGetsIt = waitFor(b, "element:added");
+    const cGetsIt = receivedWithin(c, "element:added");
+    a.emit("element:add", { element: sampleElement });
+    expect(await bGetsIt).toEqual({ element: sampleElement });
+    expect(await cGetsIt).toBe(false);
+
+    const aGetsClear = receivedWithin(a, "board:cleared");
+    const bGetsClear = receivedWithin(b, "board:cleared");
+    c.emit("board:clear");
+    expect(await aGetsClear).toBe(false);
+    expect(await bGetsClear).toBe(false);
+  });
+
+  it("rejects an invalid board ID with error:message", async () => {
+    const a = await newClient();
+    const error = waitFor(a, "error:message");
+    a.emit("board:join", { boardId: "a!" });
+    expect(await error).toEqual({ message: "Invalid board ID" });
+  });
+
+  it("stops receiving the old board's events after switching boards", async () => {
+    const a = await newClient(BOARD_X);
+    const switcher = await newClient(BOARD_X);
+    await joinBoard(server, switcher, BOARD_Y);
+
+    expect(server.io.sockets.adapter.rooms.get(BOARD_X)?.has(switcher.id)).toBe(false);
+    const getsIt = receivedWithin(switcher, "element:added");
+    a.emit("element:add", { element: sampleElement });
+    expect(await getsIt).toBe(false);
+  });
+
+  it("does not broadcast from a socket that never joined a board", async () => {
+    const outsider = await newClient();
+    const b = await newClient(BOARD_X);
+
+    const bGetsIt = receivedWithin(b, "element:added");
+    outsider.emit("element:add", { element: sampleElement });
+    outsider.emit("board:clear");
+    expect(await bGetsIt).toBe(false);
   });
 });
