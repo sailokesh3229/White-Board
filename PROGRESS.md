@@ -59,3 +59,9 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Commit: c44308c
 - Tests: server 17 passed, client 18 passed
 - Notes: Store caches the load *promise* per board (concurrent joins share one load) and queues writes per board so the database keeps element order. Store also exposes `flush(boardId)` (for tests). A stale `board:state` is not sent if the socket switched boards during the load. Browser-checked: tab B reloaded and received A's pen stroke, rectangle and eraser stroke; other board stays empty. Expected limitation: memory is wiped on server restart (fixed in Phase 8).
+
+## Phase 8 — MongoDB persistence (2026-10-15)
+- Status: done, awaiting manual verification
+- Commit: 8f72f0a
+- Tests: server 26 passed, client 18 passed
+- Notes: MongoDB 9.0.2 installed locally (Windows service, auto-start). 5 s timeouts (serverSelectionTimeoutMS, bufferTimeoutMS). Writes are queued per board so MongoDB keeps drawing order; failed writes are logged and the element stays in the cache. Load failure → `error:message`, socket leaves the room, server keeps running. Board is evicted from memory when its last socket leaves. Browser-checked: 4 elements saved in order to MongoDB; drawing survived a server restart; A redrew from the server after reconnecting. Not verified automatically: stopping MongoDB while the server runs (needs an admin terminal: `net stop MongoDB`).
