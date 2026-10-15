@@ -47,3 +47,9 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
   - Reconnect: stopping the server turned the badge red; restarting turned it green without a refresh.
   - Console: no errors or React warnings on page load.
 - Observed: the 16:9 board is taller than a ~700px-high laptop viewport, so the bottom needs scrolling.
+
+## Phase 6 — Rooms and shareable links (2026-10-15)
+- Status: done, awaiting manual verification
+- Commit: eff2aa4
+- Tests: server 10 passed, client 18 passed
+- Notes: Client rejects malformed board IDs before connecting (server still validates). `extractBoardId` lives in `client/src/lib/boardLink.js` (new file, with tests). Browser-checked: create board, A↔B sync, C on another board isolated both ways, invalid-board page, join by full URL, in-place board switch leaves the old room. Copy link not verifiable via automation (clipboard needs a real user click) — manual check.
