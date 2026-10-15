@@ -31,3 +31,9 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Commit: f7b1a2f
 - Tests: server 3 passed, client 14 passed
 - Notes: Added `socket.io-client` as a server devDependency (needed by the integration tests in plan Section 3.1). `createServer` also accepts a `logger` option so tests run silently.
+
+## Phase 5 — Live sync on one shared board (2026-10-15)
+- Status: done, awaiting manual verification
+- Commit: 603a206
+- Tests: server 6 passed, client 14 passed
+- Notes: Server ignores `element:add` without an element (full validation in Phase 11). A remote clear keeps your in-progress stroke visible. Expected limitation: late joiners see an empty board (fixed in Phase 7). E2E check against the live dev server: CORS handshake allows http://localhost:5173 and a second client received the element.
