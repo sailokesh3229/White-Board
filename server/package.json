@@ -2,8 +2,12 @@
   "name": "server",
   "version": "1.0.0",
   "scripts": {
+    "start": "node src/index.js",
     "test": "vitest run",
     "dev": "nodemon src/index.js"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "type": "module",
   "dependencies": {

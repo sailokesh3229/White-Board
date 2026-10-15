@@ -19,7 +19,8 @@ export function createServer({
 } = {}) {
   const app = express();
 
-  // Only the client app may call this server from a browser.
+  // Only the client app may call this server from a browser. clientOrigin is
+  // one origin or an array of them (see config.js).
   app.use(cors({ origin: clientOrigin }));
 
   app.get("/health", (req, res) => {
