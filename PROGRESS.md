@@ -71,3 +71,9 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Commit: 8daca81
 - Tests: server 35 passed, client 18 passed
 - Notes: `sanitizeUser` also validates `userId` (fallback "u_unknown"). Join waits until the user has a name. Rename re-emits `board:join` on the same board (server updates the entry, re-sends `board:state`). `createdBy` now holds the real userId. Browser-checked: first-visit prompt, spaces-only rejected, no prompt after reload, same name twice in two tabs of one browser with correct "(you)", rename updates other tabs, closing a tab drops the count, other board lists only its own user, "Board cleared by <name>" toast, exactly one entry per tab after a server restart.
+
+## Phase 10 — Live cursors (2026-10-15)
+- Status: done, awaiting manual verification
+- Commit: 8a51db7
+- Tests: server 42 passed, client 22 passed
+- Notes: Hand-written throttle (leading + trailing, `cancel()`). `cursor:left` is also sent to the old board on a board switch (plan addition). `isValidPoint` added to validate.js now (reused in Phase 11). Extra fix found in browser testing: a page left behind could keep its connection open until the ~45 s heartbeat timeout, leaving a stale cursor and list entry; Board now disconnects on `pagehide` (and reconnects on a back/forward-cache restore). Browser-checked: labeled cursor at the matching position, hides on pointer leave, reappears on move, removed within 0.5 s when the other tab leaves, idle cursor hidden after 10 s, cursor layer has pointer-events: none, no console errors. Not verified in the browser: messages per second (background tabs throttle timers); covered by the throttle unit test.
