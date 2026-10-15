@@ -3,8 +3,11 @@ import { Link, useParams } from "react-router-dom";
 import Canvas from "../components/Canvas.jsx";
 import Toolbar from "../components/Toolbar.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
+import OnlineUsers from "../components/OnlineUsers.jsx";
+import NamePrompt from "../components/NamePrompt.jsx";
 import { socket } from "../lib/socket.js";
 import { BOARD_ID_REGEX } from "../lib/constants.js";
+import { getUser, setName } from "../lib/user.js";
 
 const TOAST_MS = 3000;
 
@@ -39,6 +42,9 @@ function BoardView({ boardId }) {
   const [loadedBoardId, setLoadedBoardId] = useState(null);
   const loading = loadedBoardId !== boardId;
   const [copied, setCopied] = useState(false);
+  const [user, setUser] = useState(getUser);
+  const [renaming, setRenaming] = useState(false);
+  const [users, setUsers] = useState([]);
   const canvasRef = useRef(null);
 
   // Connect while the board page is open. In development, React Strict Mode
@@ -51,21 +57,27 @@ function BoardView({ boardId }) {
     };
   }, []);
 
+  // Don't show the previous board's drawing while the next one loads.
+  useEffect(() => {
+    canvasRef.current?.clear();
+  }, [boardId]);
+
   // Join the board on EVERY connect, not just the first one. After a
   // reconnect the server sees a brand-new socket that isn't in any room yet.
-  // Also re-runs when boardId changes, so moving between boards in the same
-  // tab leaves the old room and joins the new one.
+  // Also re-runs when boardId changes (leave the old room, join the new one)
+  // and when the user renames (the server updates the online list).
+  // We wait until we have a name, so the server never lists a nameless user.
   useEffect(() => {
-    canvasRef.current?.clear(); // don't show the previous board's drawing
+    if (!user.name) return;
     function join() {
-      socket.emit("board:join", { boardId });
+      socket.emit("board:join", { boardId, user });
     }
     if (socket.connected) join();
     socket.on("connect", join);
     return () => {
       socket.off("connect", join);
     };
-  }, [boardId]);
+  }, [boardId, user]);
 
   // Changes from other users. Every socket.on has a matching socket.off,
   // otherwise a remount would register a second handler and draw everything twice.
@@ -73,15 +85,20 @@ function BoardView({ boardId }) {
     function onElementAdded({ element }) {
       canvasRef.current?.addRemoteElement(element);
     }
-    function onBoardCleared() {
+    function onBoardCleared({ by }) {
       canvasRef.current?.clear();
-      setToast("Board was cleared");
+      setToast(`Board cleared by ${by}`);
+    }
+    function onPresenceUpdate({ users }) {
+      setUsers(users);
     }
     socket.on("element:added", onElementAdded);
     socket.on("board:cleared", onBoardCleared);
+    socket.on("presence:update", onPresenceUpdate);
     return () => {
       socket.off("element:added", onElementAdded);
       socket.off("board:cleared", onBoardCleared);
+      socket.off("presence:update", onPresenceUpdate);
     };
   }, []);
 
@@ -132,6 +149,11 @@ function BoardView({ boardId }) {
     socket.emit("board:clear");
   }
 
+  function handleNameSubmit(name) {
+    setUser(setName(name));
+    setRenaming(false);
+  }
+
   async function handleCopyLink() {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -166,14 +188,22 @@ function BoardView({ boardId }) {
         onSizeChange={setSize}
         onClear={handleClear}
       />
-      <Canvas
-        ref={canvasRef}
-        tool={tool}
-        color={color}
-        size={size}
-        disabled={loading}
-        onElementCreated={handleElementCreated}
-      />
+      <div className="board-layout">
+        <Canvas
+          ref={canvasRef}
+          tool={tool}
+          color={color}
+          size={size}
+          userId={user.userId}
+          disabled={loading}
+          onElementCreated={handleElementCreated}
+        />
+        <OnlineUsers users={users} selfId={socket.id} onRename={() => setRenaming(true)} />
+      </div>
+      {!user.name && <NamePrompt onSubmit={handleNameSubmit} />}
+      {user.name && renaming && (
+        <NamePrompt initialName={user.name} onSubmit={handleNameSubmit} onCancel={() => setRenaming(false)} />
+      )}
       {toast && (
         <div className="toast" role="status">
           {toast}

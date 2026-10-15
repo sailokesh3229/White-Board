@@ -52,10 +52,12 @@ export async function waitUntil(predicate, timeoutMs = 1000) {
   }
 }
 
+export const testUser = (name = "Tester") => ({ userId: "u_test1234", name, color: "#e8590c" });
+
 // Joins a board and resolves with the board:state the server sends back.
-export async function joinBoard(client, boardId) {
+export async function joinBoard(client, boardId, user = testUser()) {
   const state = waitFor(client, "board:state");
-  client.emit("board:join", { boardId });
+  client.emit("board:join", { boardId, user });
   return state;
 }
 

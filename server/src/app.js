@@ -5,6 +5,7 @@ import { Server } from "socket.io";
 import { registerBoardHandlers } from "./sockets/boardHandlers.js";
 import { createBoardStore } from "./boardStore.js";
 import { createMemoryPersistence } from "./persistence/memoryPersistence.js";
+import { createPresence } from "./presence.js";
 
 // Builds the HTTP + Socket.IO server without starting it, so tests can create
 // as many isolated servers as they like (each on a random port) and no test
@@ -13,6 +14,7 @@ export function createServer({
   clientOrigin = "http://localhost:5173",
   logger = console,
   store = createBoardStore(createMemoryPersistence(), { logger }),
+  presence = createPresence(),
 } = {}) {
   const app = express();
 
@@ -32,12 +34,12 @@ export function createServer({
 
   io.on("connection", (socket) => {
     logger.log(`connected ${socket.id}`);
-    registerBoardHandlers(io, socket, { store, logger });
+    registerBoardHandlers(io, socket, { store, presence, logger });
 
     socket.on("disconnect", (reason) => {
       logger.log(`disconnected ${socket.id} ${reason}`);
     });
   });
 
-  return { app, httpServer, io, store };
+  return { app, httpServer, io, store, presence };
 }

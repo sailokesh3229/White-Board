@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { startTestServer, connect, waitFor, receivedWithin, joinBoard, waitUntil } from "./helpers.js";
+import { startTestServer, connect, waitFor, receivedWithin, joinBoard, waitUntil, testUser } from "./helpers.js";
 import { createBoardStore } from "../boardStore.js";
 import { createMemoryPersistence } from "../persistence/memoryPersistence.js";
 
@@ -72,7 +72,7 @@ describe("live sync", () => {
     const aGetsIt = receivedWithin(a, "board:cleared");
     a.emit("board:clear");
 
-    expect(await bGetsIt).toHaveProperty("by");
+    expect(await bGetsIt).toEqual({ by: "Tester" });
     expect(await aGetsIt).toBe(false);
   });
 
@@ -234,5 +234,78 @@ describe("persistence failures and eviction", () => {
     // Reloaded from persistence on the next join.
     const c = await newClient();
     expect((await joinBoard(c, BOARD_X)).elements).toEqual([sampleElement]);
+  });
+});
+
+// Resolves with the next presence:update whose list has `count` users.
+function presenceWith(client, count) {
+  return new Promise((resolve) => {
+    client.on("presence:update", function handler({ users }) {
+      if (users.length !== count) return;
+      client.off("presence:update", handler);
+      resolve(users);
+    });
+  });
+}
+
+describe("presence", () => {
+  it("tells everyone in the room, including the joiner, who is online", async () => {
+    const a = await connect(server.url);
+    const b = await connect(server.url);
+    clients.push(a, b);
+
+    const aSeesTwo = presenceWith(a, 2);
+    const bSeesTwo = presenceWith(b, 2);
+    await joinBoard(a, BOARD_X, testUser("Alice"));
+    await joinBoard(b, BOARD_X, testUser("Bob"));
+
+    const expected = [
+      { socketId: a.id, name: "Alice", color: "#e8590c" },
+      { socketId: b.id, name: "Bob", color: "#e8590c" },
+    ];
+    expect(await aSeesTwo).toEqual(expected);
+    expect(await bSeesTwo).toEqual(expected);
+  });
+
+  it("removes a user who disconnects", async () => {
+    const a = await newClient();
+    const b = await newClient();
+    await joinBoard(a, BOARD_X, testUser("Alice"));
+    await joinBoard(b, BOARD_X, testUser("Bob"));
+
+    const aSeesOne = presenceWith(a, 1);
+    b.disconnect();
+    expect(await aSeesOne).toEqual([{ socketId: a.id, name: "Alice", color: "#e8590c" }]);
+  });
+
+  it("removes a user from the old board when they switch boards", async () => {
+    const a = await newClient();
+    const b = await newClient();
+    await joinBoard(a, BOARD_X, testUser("Alice"));
+    await joinBoard(b, BOARD_X, testUser("Bob"));
+
+    const aSeesOne = presenceWith(a, 1);
+    await joinBoard(b, BOARD_Y, testUser("Bob"));
+    expect((await aSeesOne).map((u) => u.name)).toEqual(["Alice"]);
+  });
+
+  it("never lists users from another board", async () => {
+    const a = await newClient();
+    const c = await newClient();
+    await joinBoard(c, BOARD_Y, testUser("Carol"));
+    const update = waitFor(a, "presence:update");
+    await joinBoard(a, BOARD_X, testUser("Alice"));
+    expect((await update).users.map((u) => u.name)).toEqual(["Alice"]);
+  });
+
+  it("sanitizes the name and color", async () => {
+    const a = await newClient();
+    const update = waitFor(a, "presence:update");
+    a.emit("board:join", { boardId: BOARD_X, user: { userId: "u_x", name: "   ", color: "red" } });
+    expect((await update).users[0]).toMatchObject({ name: "Guest", color: "#868e96" });
+
+    const second = waitFor(a, "presence:update");
+    a.emit("board:join", { boardId: BOARD_X, user: { name: "x".repeat(100), color: "#123abc" } });
+    expect((await second).users[0]).toMatchObject({ name: "x".repeat(20), color: "#123abc" });
   });
 });

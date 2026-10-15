@@ -1,4 +1,4 @@
-import { isValidBoardId } from "../validate.js";
+import { isValidBoardId, sanitizeUser } from "../validate.js";
 
 // All board-related events for one connected socket.
 //
@@ -13,11 +13,30 @@ import { isValidBoardId } from "../validate.js";
 //
 // Database calls can fail, so every async handler catches its errors: one bad
 // board must never crash the server for everyone else.
-export function registerBoardHandlers(io, socket, { store, logger = console }) {
+export function registerBoardHandlers(io, socket, { store, presence, logger = console }) {
   // Once nobody is left on a board, drop it from memory. It is reloaded
   // from the database the next time someone joins.
   function evictIfEmpty(boardId) {
     if (!io.sockets.adapter.rooms.has(boardId)) store.evict(boardId);
+  }
+
+  // presence:update goes to EVERYONE in the room (io.to), including the
+  // sender, because everyone's list has to change, not just the others'.
+  function sendPresence(boardId) {
+    io.to(boardId).emit("presence:update", { users: presence.listUsers(boardId) });
+  }
+
+  function nameOf(boardId) {
+    return presence.getUser(boardId, socket.id)?.name ?? "Someone";
+  }
+
+  // Shared by switching boards, failed loads and disconnecting.
+  function removeFromBoard(boardId) {
+    const name = nameOf(boardId);
+    presence.removeUser(boardId, socket.id);
+    sendPresence(boardId);
+    logger.log(`[board ${boardId}] leave ${name}`);
+    evictIfEmpty(boardId);
   }
 
   function leaveCurrentBoard() {
@@ -25,8 +44,7 @@ export function registerBoardHandlers(io, socket, { store, logger = console }) {
     if (!boardId) return;
     socket.leave(boardId);
     socket.data.boardId = undefined;
-    logger.log(`[board ${boardId}] leave ${socket.id}`);
-    evictIfEmpty(boardId);
+    removeFromBoard(boardId);
   }
 
   socket.on("board:join", async (payload) => {
@@ -36,10 +54,14 @@ export function registerBoardHandlers(io, socket, { store, logger = console }) {
       return;
     }
 
+    const user = sanitizeUser(payload.user);
     if (socket.data.boardId !== boardId) leaveCurrentBoard();
     socket.join(boardId);
     socket.data.boardId = boardId;
-    logger.log(`[board ${boardId}] join ${socket.id}`);
+    // Re-joining the same board (e.g. after a rename) just updates the entry.
+    presence.addUser(boardId, socket.id, user);
+    sendPresence(boardId);
+    logger.log(`[board ${boardId}] join ${user.name}`);
 
     try {
       // Send the current board to the joiner only.
@@ -76,18 +98,16 @@ export function registerBoardHandlers(io, socket, { store, logger = console }) {
     if (!boardId) return;
     try {
       await store.clearBoard(boardId);
-      socket.to(boardId).emit("board:cleared", { by: "Someone" }); // real names in Phase 9
+      socket.to(boardId).emit("board:cleared", { by: nameOf(boardId) });
     } catch (err) {
       logger.error(`[board ${boardId}] clear failed: ${err.message}`);
     }
   });
 
   // By the time "disconnect" fires, Socket.IO has already removed the socket
-  // from its rooms, so we only need to log and tidy up.
+  // from its rooms; we still have to update presence and tidy up.
   socket.on("disconnect", () => {
     const boardId = socket.data.boardId;
-    if (!boardId) return;
-    logger.log(`[board ${boardId}] leave ${socket.id}`);
-    evictIfEmpty(boardId);
+    if (boardId) removeFromBoard(boardId);
   });
 }

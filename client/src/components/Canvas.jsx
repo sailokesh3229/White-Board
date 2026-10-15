@@ -7,7 +7,7 @@ import { drawDot, drawElement, drawSegment, redrawAll } from "../lib/draw.js";
 const CURSORS = { pen: "crosshair", eraser: "cell", rect: "crosshair", circle: "crosshair", line: "crosshair" };
 const SHAPE_BUILDERS = { rect: makeRect, circle: makeCircle, line: makeLine };
 
-export default function Canvas({ ref, tool, color, size, disabled, onElementCreated }) {
+export default function Canvas({ ref, tool, color, size, userId, disabled, onElementCreated }) {
   const mainRef = useRef(null); // finished elements
   const previewRef = useRef(null); // only the shape being dragged right now
   // Board data lives in refs, not state: a stroke adds dozens of points per
@@ -57,7 +57,7 @@ export default function Canvas({ ref, tool, color, size, disabled, onElementCrea
       id: "el_" + nanoid(10),
       color,
       size,
-      createdBy: "local", // replaced by the real userId in Phase 9
+      createdBy: userId, // lets a future undo find "my" elements
       createdAt: Date.now(),
       ...fields,
     };
