@@ -1,5 +1,6 @@
 // Draws one complete element. save()/restore() around every element makes sure
-// settings like color or line width never leak into the next element.
+// settings like color, line width, or the eraser's composite mode never leak
+// into the next element.
 export function drawElement(ctx, element) {
   ctx.save();
   if (element.type === "stroke") drawStroke(ctx, element);
@@ -7,7 +8,8 @@ export function drawElement(ctx, element) {
 }
 
 // Clears the canvas and draws every element in order. Order matters: later
-// elements are painted on top of earlier ones.
+// elements are painted on top of earlier ones, and an eraser stroke only
+// erases what was drawn before it.
 export function redrawAll(ctx, elements) {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   for (const element of elements) drawElement(ctx, element);
@@ -28,7 +30,7 @@ export function drawSegment(ctx, element, from, to) {
 // A stroke with a single point (a click without dragging) is drawn as a dot.
 export function drawDot(ctx, element, [x, y]) {
   ctx.save();
-  ctx.fillStyle = element.color;
+  applyStrokeStyle(ctx, element);
   ctx.beginPath();
   ctx.arc(x, y, element.size / 2, 0, Math.PI * 2);
   ctx.fill();
@@ -49,7 +51,18 @@ function drawStroke(ctx, element) {
 }
 
 function applyStrokeStyle(ctx, element) {
-  ctx.strokeStyle = element.color;
+  if (element.tool === "eraser") {
+    // "destination-out" removes existing pixels wherever we paint, cutting
+    // transparent holes in the canvas. The white wrapper behind the
+    // transparent canvas shows through, so erased areas look white.
+    // The paint color doesn't matter, only that it is fully opaque.
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.strokeStyle = "#000";
+    ctx.fillStyle = "#000";
+  } else {
+    ctx.strokeStyle = element.color;
+    ctx.fillStyle = element.color;
+  }
   ctx.lineWidth = element.size;
   // Round caps and joins make strokes look smooth instead of jagged.
   ctx.lineCap = "round";

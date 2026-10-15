@@ -45,9 +45,83 @@ body {
   height: 100%;
   /* Stops the page from scrolling when drawing with a finger. */
   touch-action: none;
-  cursor: crosshair;
 }
 
 .debug-button {
   margin-top: 8px;
+}
+
+/* Toolbar: one horizontal bar above the board that wraps on narrow screens. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toolbar button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.tool-button {
+  padding: 6px 12px;
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  background: #fff;
+}
+
+/* Make the selected tool obvious. */
+.tool-button[aria-pressed="true"] {
+  background: #1971c2;
+  border-color: #1971c2;
+  color: #fff;
+}
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #a1a1aa;
+  border-radius: 50%;
+}
+
+.swatch[aria-pressed="true"] {
+  outline: 2px solid #1971c2;
+  outline-offset: 2px;
+}
+
+.toolbar input[type="color"] {
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.size-value {
+  min-width: 2ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.clear-button {
+  margin-left: auto;
+  padding: 6px 12px;
+  border: 1px solid #e03131;
+  border-radius: 6px;
+  background: #fff;
+  color: #e03131;
 }

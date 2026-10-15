@@ -1,10 +1,12 @@
-import { useRef } from "react";
+import { useImperativeHandle, useRef } from "react";
 import { nanoid } from "nanoid";
 import { BOARD_WIDTH, BOARD_HEIGHT } from "../lib/constants.js";
 import { getBoardPoint, roundPoint } from "../lib/geometry.js";
 import { drawDot, drawSegment, redrawAll } from "../lib/draw.js";
 
-export default function Canvas() {
+const CURSORS = { pen: "crosshair", eraser: "cell" };
+
+export default function Canvas({ ref, tool, color, size }) {
   const canvasRef = useRef(null);
   // Board data lives in refs, not state: a stroke adds dozens of points per
   // second and we don't want React to re-render for each one.
@@ -14,6 +16,15 @@ export default function Canvas() {
   function getCtx() {
     return canvasRef.current.getContext("2d");
   }
+
+  // Lets the parent (Board) act on the board data without owning it.
+  useImperativeHandle(ref, () => ({
+    clear() {
+      elementsRef.current = [];
+      currentRef.current = null;
+      redrawAll(getCtx(), []);
+    },
+  }));
 
   function toPoint(event) {
     const { x, y } = getBoardPoint(event, canvasRef.current);
@@ -29,9 +40,9 @@ export default function Canvas() {
     const stroke = {
       id: "el_" + nanoid(10),
       type: "stroke",
-      tool: "pen",
-      color: "#1e1e1e",
-      size: 4,
+      tool,
+      color,
+      size,
       points: [point],
       createdBy: "local", // replaced by the real userId in Phase 9
       createdAt: Date.now(),
@@ -71,6 +82,7 @@ export default function Canvas() {
           ref={canvasRef}
           width={BOARD_WIDTH}
           height={BOARD_HEIGHT}
+          style={{ cursor: CURSORS[tool] }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
