@@ -5,13 +5,14 @@ const silentLogger = { log() {}, warn() {}, error() {} };
 
 // Starts a fresh server on a random free port (listen(0)).
 export async function startTestServer(options = {}) {
-  const { httpServer, io } = createServer({ clientOrigin: "*", logger: silentLogger, ...options });
+  const { httpServer, io, store } = createServer({ clientOrigin: "*", logger: silentLogger, ...options });
   await new Promise((resolve) => httpServer.listen(0, resolve));
   const { port } = httpServer.address();
 
   return {
     url: `http://localhost:${port}`,
     io,
+    store,
     // io.close() disconnects every socket and also closes the HTTP server.
     close: () => new Promise((resolve) => io.close(() => resolve())),
   };
@@ -51,10 +52,11 @@ export async function waitUntil(predicate, timeoutMs = 1000) {
   }
 }
 
-// Joins a board and waits until the server has put the socket in the room.
-export async function joinBoard(server, client, boardId) {
+// Joins a board and resolves with the board:state the server sends back.
+export async function joinBoard(client, boardId) {
+  const state = waitFor(client, "board:state");
   client.emit("board:join", { boardId });
-  await waitUntil(() => server.io.sockets.adapter.rooms.get(boardId)?.has(client.id));
+  return state;
 }
 
 // Resolves true if `event` arrives within ms, false otherwise. Used to check

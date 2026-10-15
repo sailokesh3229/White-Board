@@ -3,11 +3,17 @@ import express from "express";
 import cors from "cors";
 import { Server } from "socket.io";
 import { registerBoardHandlers } from "./sockets/boardHandlers.js";
+import { createBoardStore } from "./boardStore.js";
+import { createMemoryPersistence } from "./persistence/memoryPersistence.js";
 
 // Builds the HTTP + Socket.IO server without starting it, so tests can create
 // as many isolated servers as they like (each on a random port) and no test
 // ever needs a real database. index.js does the real startup.
-export function createServer({ clientOrigin = "http://localhost:5173", logger = console } = {}) {
+export function createServer({
+  clientOrigin = "http://localhost:5173",
+  logger = console,
+  store = createBoardStore(createMemoryPersistence(), { logger }),
+} = {}) {
   const app = express();
 
   // Only the client app may call this server from a browser.
@@ -26,12 +32,12 @@ export function createServer({ clientOrigin = "http://localhost:5173", logger = 
 
   io.on("connection", (socket) => {
     logger.log(`connected ${socket.id}`);
-    registerBoardHandlers(io, socket, { logger });
+    registerBoardHandlers(io, socket, { store, logger });
 
     socket.on("disconnect", (reason) => {
       logger.log(`disconnected ${socket.id} ${reason}`);
     });
   });
 
-  return { app, httpServer, io };
+  return { app, httpServer, io, store };
 }

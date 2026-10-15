@@ -21,7 +21,7 @@ afterEach(async () => {
 async function newClient(boardId) {
   const client = await connect(server.url);
   clients.push(client);
-  if (boardId) await joinBoard(server, client, boardId);
+  if (boardId) await joinBoard(client, boardId);
   return client;
 }
 
@@ -116,7 +116,7 @@ describe("rooms", () => {
   it("stops receiving the old board's events after switching boards", async () => {
     const a = await newClient(BOARD_X);
     const switcher = await newClient(BOARD_X);
-    await joinBoard(server, switcher, BOARD_Y);
+    await joinBoard(switcher, BOARD_Y);
 
     expect(server.io.sockets.adapter.rooms.get(BOARD_X)?.has(switcher.id)).toBe(false);
     const getsIt = receivedWithin(switcher, "element:added");
@@ -132,5 +132,53 @@ describe("rooms", () => {
     outsider.emit("element:add", { element: sampleElement });
     outsider.emit("board:clear");
     expect(await bGetsIt).toBe(false);
+  });
+});
+
+describe("late joiners", () => {
+  const second = { ...sampleElement, id: "el_test000002", x1: 50 };
+
+  it("sends the current board to a new joiner, in order", async () => {
+    const a = await newClient(BOARD_X);
+    const watcher = await newClient(BOARD_X);
+
+    // Wait until the watcher sees both, so we know the server stored them.
+    const seenTwice = new Promise((resolve) => {
+      let count = 0;
+      watcher.on("element:added", () => ++count === 2 && resolve());
+    });
+    a.emit("element:add", { element: sampleElement });
+    a.emit("element:add", { element: second });
+    await seenTwice;
+
+    const late = await newClient();
+    const state = await joinBoard(late, BOARD_X);
+    expect(state.elements).toEqual([sampleElement, second]);
+  });
+
+  it("sends an empty board after a clear", async () => {
+    const a = await newClient(BOARD_X);
+    const watcher = await newClient(BOARD_X);
+
+    const added = waitFor(watcher, "element:added");
+    a.emit("element:add", { element: sampleElement });
+    await added;
+    const cleared = waitFor(watcher, "board:cleared");
+    a.emit("board:clear");
+    await cleared;
+
+    const late = await newClient();
+    expect((await joinBoard(late, BOARD_X)).elements).toEqual([]);
+  });
+
+  it("keeps boards separate in the store", async () => {
+    const a = await newClient(BOARD_X);
+    const watcher = await newClient(BOARD_X);
+    const added = waitFor(watcher, "element:added");
+    a.emit("element:add", { element: sampleElement });
+    await added;
+
+    const other = await newClient();
+    expect((await joinBoard(other, BOARD_Y)).elements).toEqual([]);
   });
 });

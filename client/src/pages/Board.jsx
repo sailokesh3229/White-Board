@@ -34,6 +34,10 @@ function BoardView({ boardId }) {
   const [size, setSize] = useState(4);
   const [toast, setToast] = useState(null);
   const [rejectedBoardId, setRejectedBoardId] = useState(null);
+  // Drawing stays disabled until this board's first board:state arrives;
+  // otherwise a stroke drawn during loading would be wiped by the redraw.
+  const [loadedBoardId, setLoadedBoardId] = useState(null);
+  const loading = loadedBoardId !== boardId;
   const [copied, setCopied] = useState(false);
   const canvasRef = useRef(null);
 
@@ -80,6 +84,19 @@ function BoardView({ boardId }) {
       socket.off("board:cleared", onBoardCleared);
     };
   }, []);
+
+  // The full board, sent to us after every (re)join. It REPLACES what we have,
+  // so a reconnect never shows elements twice.
+  useEffect(() => {
+    function onBoardState({ elements }) {
+      canvasRef.current?.replaceAll(elements);
+      setLoadedBoardId(boardId);
+    }
+    socket.on("board:state", onBoardState);
+    return () => {
+      socket.off("board:state", onBoardState);
+    };
+  }, [boardId]);
 
   useEffect(() => {
     function onErrorMessage({ message }) {
@@ -154,6 +171,7 @@ function BoardView({ boardId }) {
         tool={tool}
         color={color}
         size={size}
+        disabled={loading}
         onElementCreated={handleElementCreated}
       />
       {toast && (

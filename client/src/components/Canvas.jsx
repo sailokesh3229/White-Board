@@ -7,7 +7,7 @@ import { drawDot, drawElement, drawSegment, redrawAll } from "../lib/draw.js";
 const CURSORS = { pen: "crosshair", eraser: "cell", rect: "crosshair", circle: "crosshair", line: "crosshair" };
 const SHAPE_BUILDERS = { rect: makeRect, circle: makeCircle, line: makeLine };
 
-export default function Canvas({ ref, tool, color, size, onElementCreated }) {
+export default function Canvas({ ref, tool, color, size, disabled, onElementCreated }) {
   const mainRef = useRef(null); // finished elements
   const previewRef = useRef(null); // only the shape being dragged right now
   // Board data lives in refs, not state: a stroke adds dozens of points per
@@ -32,6 +32,12 @@ export default function Canvas({ ref, tool, color, size, onElementCreated }) {
       elementsRef.current = [];
       redrawAll(mainCtx(), []);
       // If someone else cleared while we're mid-stroke, keep our stroke visible.
+      if (strokeRef.current) drawElement(mainCtx(), strokeRef.current);
+    },
+    // The server's copy is the truth: throw away ours and draw theirs.
+    replaceAll(elements) {
+      elementsRef.current = [...elements];
+      redrawAll(mainCtx(), elementsRef.current);
       if (strokeRef.current) drawElement(mainCtx(), strokeRef.current);
     },
     addRemoteElement(element) {
@@ -73,6 +79,7 @@ export default function Canvas({ ref, tool, color, size, onElementCreated }) {
   }
 
   function handlePointerDown(event) {
+    if (disabled) return; // e.g. while the board is loading
     if (event.button !== 0) return; // only the main mouse button / a touch / a pen tip
     // Keep receiving moves even if the pointer leaves the canvas mid-drag.
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -132,11 +139,12 @@ export default function Canvas({ ref, tool, color, size, onElementCreated }) {
         ref={previewRef}
         width={BOARD_WIDTH}
         height={BOARD_HEIGHT}
-        style={{ cursor: CURSORS[tool] }}
+        style={{ cursor: disabled ? "wait" : CURSORS[tool] }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       />
+      {disabled && <div className="board-overlay">Loading board…</div>}
     </div>
   );
 }
