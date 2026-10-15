@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { startTestServer, connect, waitFor, receivedWithin, joinBoard } from "./helpers.js";
+import { startTestServer, connect, waitFor, receivedWithin, joinBoard, waitUntil } from "./helpers.js";
+import { createBoardStore } from "../boardStore.js";
+import { createMemoryPersistence } from "../persistence/memoryPersistence.js";
 
 const BOARD_X = "AAAAAA1111";
 const BOARD_Y = "BBBBBB2222";
@@ -180,5 +182,57 @@ describe("late joiners", () => {
 
     const other = await newClient();
     expect((await joinBoard(other, BOARD_Y)).elements).toEqual([]);
+  });
+});
+
+describe("persistence failures and eviction", () => {
+  it("sends error:message when a board can't be loaded, and keeps serving other boards", async () => {
+    // Swap in a store whose database fails for BOARD_X only.
+    await server.close();
+    const memory = createMemoryPersistence();
+    const flaky = {
+      ...memory,
+      load: async (boardId) => {
+        if (boardId === BOARD_X) throw new Error("db down");
+        return memory.load(boardId);
+      },
+    };
+    const silent = { log() {}, warn() {}, error() {} };
+    server = await startTestServer({ store: createBoardStore(flaky, { logger: silent }) });
+
+    const a = await newClient();
+    const error = waitFor(a, "error:message");
+    a.emit("board:join", { boardId: BOARD_X });
+    expect(await error).toEqual({ message: "Could not load board, please try again" });
+
+    const b = await newClient();
+    expect((await joinBoard(b, BOARD_Y)).elements).toEqual([]);
+  });
+
+  it("evicts a board from memory when the last user leaves", async () => {
+    const a = await newClient(BOARD_X);
+    const b = await newClient(BOARD_X);
+    const added = waitFor(b, "element:added");
+    a.emit("element:add", { element: sampleElement });
+    await added;
+
+    const evicted = [];
+    const originalEvict = server.store.evict;
+    server.store.evict = (boardId) => {
+      evicted.push(boardId);
+      originalEvict(boardId);
+    };
+
+    a.disconnect();
+    await waitUntil(() => server.io.sockets.adapter.rooms.get(BOARD_X)?.size === 1);
+    expect(evicted).toEqual([]); // b is still there
+
+    b.disconnect();
+    await waitUntil(() => evicted.length === 1);
+    expect(evicted).toEqual([BOARD_X]);
+
+    // Reloaded from persistence on the next join.
+    const c = await newClient();
+    expect((await joinBoard(c, BOARD_X)).elements).toEqual([sampleElement]);
   });
 });
