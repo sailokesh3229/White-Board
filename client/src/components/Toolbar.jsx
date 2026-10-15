@@ -3,6 +3,9 @@ import { MIN_SIZE, MAX_SIZE } from "../lib/constants.js";
 const TOOLS = [
   { id: "pen", label: "Pen" },
   { id: "eraser", label: "Eraser" },
+  { id: "rect", label: "Rectangle" },
+  { id: "circle", label: "Circle" },
+  { id: "line", label: "Line" },
 ];
 
 const SWATCHES = [

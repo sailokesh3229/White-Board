@@ -4,6 +4,9 @@
 export function drawElement(ctx, element) {
   ctx.save();
   if (element.type === "stroke") drawStroke(ctx, element);
+  else if (element.type === "rect") drawRect(ctx, element);
+  else if (element.type === "circle") drawCircle(ctx, element);
+  else if (element.type === "line") drawLine(ctx, element);
   ctx.restore();
 }
 
@@ -47,6 +50,27 @@ function drawStroke(ctx, element) {
   ctx.beginPath();
   ctx.moveTo(first[0], first[1]);
   for (const [x, y] of rest) ctx.lineTo(x, y);
+  ctx.stroke();
+}
+
+// Shapes are outlines only (no fill).
+function drawRect(ctx, element) {
+  applyStrokeStyle(ctx, element);
+  ctx.strokeRect(element.x, element.y, element.width, element.height);
+}
+
+function drawCircle(ctx, element) {
+  applyStrokeStyle(ctx, element);
+  ctx.beginPath();
+  ctx.arc(element.cx, element.cy, element.r, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawLine(ctx, element) {
+  applyStrokeStyle(ctx, element);
+  ctx.beginPath();
+  ctx.moveTo(element.x1, element.y1);
+  ctx.lineTo(element.x2, element.y2);
   ctx.stroke();
 }
 

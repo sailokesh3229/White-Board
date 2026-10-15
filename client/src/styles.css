@@ -47,8 +47,9 @@ body {
   touch-action: none;
 }
 
-.debug-button {
-  margin-top: 8px;
+/* The preview canvas sits on top and receives all pointer events. */
+.board-wrapper .main-canvas {
+  pointer-events: none;
 }
 
 /* Toolbar: one horizontal bar above the board that wraps on narrow screens. */
