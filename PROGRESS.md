@@ -7,3 +7,9 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Commit: d35dfbf
 - Tests: server 2 passed, client 2 passed
 - Notes: Node v24.20.0. Kept the Vite template's oxlint config. `npm audit` reports 3 high-severity advisories in nodemon's dev-only file watcher (braces/chokidar); nothing ships to production. MongoDB is not installed on this machine yet (needed in Phase 8).
+
+## Phase 1 — Freehand pen (2026-10-15)
+- Status: done, awaiting manual verification
+- Commit: 344d038
+- Tests: server 2 passed, client 6 passed
+- Notes: Pen is hardcoded to #1e1e1e / size 4 as planned. `createdBy` is a placeholder "local" until Phase 9. Temporary "Redraw (debug)" button is below the board (remove in Phase 3).
