@@ -25,3 +25,9 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Commit: af2a409
 - Tests: server 2 passed, client 14 passed
 - Notes: Single-user whiteboard complete (spec milestone). Debug redraw button removed. A rectangle is kept if either side is ≥ 3 units (spec: ignore only when both are under 3).
+
+## Phase 4 — Socket.IO connection (2026-10-15)
+- Status: done, awaiting manual verification
+- Commit: f7b1a2f
+- Tests: server 3 passed, client 14 passed
+- Notes: Added `socket.io-client` as a server devDependency (needed by the integration tests in plan Section 3.1). `createServer` also accepts a `logger` option so tests run silently.
