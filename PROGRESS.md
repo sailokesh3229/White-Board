@@ -13,3 +13,9 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Commit: 344d038
 - Tests: server 2 passed, client 6 passed
 - Notes: Pen is hardcoded to #1e1e1e / size 4 as planned. `createdBy` is a placeholder "local" until Phase 9. Temporary "Redraw (debug)" button is below the board (remove in Phase 3).
+
+## Phase 2 — Color, size, eraser, clear (2026-10-15)
+- Status: done, awaiting manual verification
+- Commit: 2a29fb6
+- Tests: server 2 passed, client 6 passed
+- Notes: Canvas exposes a `clear()` method to Board through a ref (React 19 `ref` prop + `useImperativeHandle`), so board data stays inside Canvas. Eraser strokes still store the current color, but drawing ignores it.
