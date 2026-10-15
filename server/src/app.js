@@ -2,6 +2,7 @@ import http from "node:http";
 import express from "express";
 import cors from "cors";
 import { Server } from "socket.io";
+import { registerBoardHandlers } from "./sockets/boardHandlers.js";
 
 // Builds the HTTP + Socket.IO server without starting it, so tests can create
 // as many isolated servers as they like (each on a random port) and no test
@@ -25,6 +26,7 @@ export function createServer({ clientOrigin = "http://localhost:5173", logger = 
 
   io.on("connection", (socket) => {
     logger.log(`connected ${socket.id}`);
+    registerBoardHandlers(io, socket, { logger });
 
     socket.on("disconnect", (reason) => {
       logger.log(`disconnected ${socket.id} ${reason}`);

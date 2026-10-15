@@ -7,7 +7,7 @@ import { drawDot, drawElement, drawSegment, redrawAll } from "../lib/draw.js";
 const CURSORS = { pen: "crosshair", eraser: "cell", rect: "crosshair", circle: "crosshair", line: "crosshair" };
 const SHAPE_BUILDERS = { rect: makeRect, circle: makeCircle, line: makeLine };
 
-export default function Canvas({ ref, tool, color, size }) {
+export default function Canvas({ ref, tool, color, size, onElementCreated }) {
   const mainRef = useRef(null); // finished elements
   const previewRef = useRef(null); // only the shape being dragged right now
   // Board data lives in refs, not state: a stroke adds dozens of points per
@@ -25,11 +25,18 @@ export default function Canvas({ ref, tool, color, size }) {
   }
 
   // Lets the parent (Board) act on the board data without owning it.
+  // Remote updates only touch the finished elements on the main canvas; the
+  // preview canvas and the stroke you are drawing right now are left alone.
   useImperativeHandle(ref, () => ({
     clear() {
       elementsRef.current = [];
-      strokeRef.current = null;
       redrawAll(mainCtx(), []);
+      // If someone else cleared while we're mid-stroke, keep our stroke visible.
+      if (strokeRef.current) drawElement(mainCtx(), strokeRef.current);
+    },
+    addRemoteElement(element) {
+      elementsRef.current.push(element);
+      drawElement(mainCtx(), element);
     },
   }));
 
@@ -56,7 +63,13 @@ export default function Canvas({ ref, tool, color, size }) {
 
   function finishElement(element) {
     drawElement(mainCtx(), element);
+    commitElement(element);
+  }
+
+  // Draw locally first (so it feels instant), then tell everyone else.
+  function commitElement(element) {
     elementsRef.current.push(element);
+    onElementCreated?.(element);
   }
 
   function handlePointerDown(event) {
@@ -109,7 +122,7 @@ export default function Canvas({ ref, tool, color, size }) {
     const stroke = strokeRef.current;
     if (!stroke) return;
     strokeRef.current = null;
-    elementsRef.current.push(stroke); // already drawn segment by segment
+    commitElement(stroke); // already drawn segment by segment
   }
 
   return (

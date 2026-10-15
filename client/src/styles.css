@@ -76,6 +76,19 @@ body {
   pointer-events: none;
 }
 
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: #1e1e1e;
+  color: #fff;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.2);
+}
+
 /* Toolbar: one horizontal bar above the board that wraps on narrow screens. */
 .toolbar {
   display: flex;
