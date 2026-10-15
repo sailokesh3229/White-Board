@@ -309,3 +309,73 @@ describe("presence", () => {
     expect((await second).users[0]).toMatchObject({ name: "x".repeat(20), color: "#123abc" });
   });
 });
+
+describe("live cursors", () => {
+  async function aliceAndBob() {
+    const a = await newClient();
+    const b = await newClient();
+    await joinBoard(a, BOARD_X, testUser("Alice"));
+    await joinBoard(b, BOARD_X, testUser("Bob"));
+    return { a, b };
+  }
+
+  it("forwards cursor:move to others with the sender's name and color", async () => {
+    const { a, b } = await aliceAndBob();
+
+    const bSees = waitFor(b, "cursor:moved");
+    const aSees = receivedWithin(a, "cursor:moved");
+    a.emit("cursor:move", { x: 800, y: 450 });
+
+    expect(await bSees).toEqual({ socketId: a.id, name: "Alice", color: "#e8590c", x: 800, y: 450 });
+    expect(await aSees).toBe(false);
+  });
+
+  it("ignores invalid cursor positions", async () => {
+    const { a, b } = await aliceAndBob();
+    const bSees = receivedWithin(b, "cursor:moved");
+    a.emit("cursor:move", { x: "800", y: 450 });
+    a.emit("cursor:move", { x: Infinity, y: 0 });
+    a.emit("cursor:move", { x: 99999, y: 0 });
+    a.emit("cursor:move");
+    expect(await bSees).toBe(false);
+  });
+
+  it("ignores cursors from a socket that is not on a board", async () => {
+    const outsider = await newClient();
+    const b = await newClient(BOARD_X);
+    const bSees = receivedWithin(b, "cursor:moved");
+    outsider.emit("cursor:move", { x: 1, y: 1 });
+    expect(await bSees).toBe(false);
+  });
+
+  it("sends cursor:left on cursor:leave", async () => {
+    const { a, b } = await aliceAndBob();
+    const left = waitFor(b, "cursor:left");
+    a.emit("cursor:leave");
+    expect(await left).toEqual({ socketId: a.id });
+  });
+
+  it("sends cursor:left when the user disconnects", async () => {
+    const { a, b } = await aliceAndBob();
+    const id = a.id;
+    const left = waitFor(b, "cursor:left");
+    a.disconnect();
+    expect(await left).toEqual({ socketId: id });
+  });
+
+  it("sends cursor:left to the old board when the user switches boards", async () => {
+    const { a, b } = await aliceAndBob();
+    const left = waitFor(b, "cursor:left");
+    await joinBoard(a, BOARD_Y, testUser("Alice"));
+    expect(await left).toEqual({ socketId: a.id });
+  });
+
+  it("never sends cursors to another board", async () => {
+    const { a } = await aliceAndBob();
+    const c = await newClient();
+    await joinBoard(c, BOARD_Y, testUser("Carol"));
+    const cSees = receivedWithin(c, "cursor:moved");
+    a.emit("cursor:move", { x: 10, y: 10 });
+    expect(await cSees).toBe(false);
+  });
+});

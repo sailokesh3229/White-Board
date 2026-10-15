@@ -1,4 +1,4 @@
-import { isValidBoardId, sanitizeUser } from "../validate.js";
+import { isValidBoardId, isValidPoint, sanitizeUser } from "../validate.js";
 
 // All board-related events for one connected socket.
 //
@@ -30,11 +30,13 @@ export function registerBoardHandlers(io, socket, { store, presence, logger = co
     return presence.getUser(boardId, socket.id)?.name ?? "Someone";
   }
 
-  // Shared by switching boards, failed loads and disconnecting.
+  // Shared by switching boards, failed loads and disconnecting. The socket is
+  // no longer in the room here, so io.to(room) reaches everyone left.
   function removeFromBoard(boardId) {
     const name = nameOf(boardId);
     presence.removeUser(boardId, socket.id);
     sendPresence(boardId);
+    io.to(boardId).emit("cursor:left", { socketId: socket.id });
     logger.log(`[board ${boardId}] leave ${name}`);
     evictIfEmpty(boardId);
   }
@@ -102,6 +104,31 @@ export function registerBoardHandlers(io, socket, { store, presence, logger = co
     } catch (err) {
       logger.error(`[board ${boardId}] clear failed: ${err.message}`);
     }
+  });
+
+  // Cursors are sent about 20 times per second. "volatile" lets Socket.IO
+  // drop a message when the connection is busy: a lost cursor position is
+  // replaced by the next one 50 ms later, unlike a drawing, which must never
+  // be dropped.
+  socket.on("cursor:move", (payload) => {
+    const boardId = socket.data.boardId;
+    const user = boardId && presence.getUser(boardId, socket.id);
+    if (!user) return; // not on a board (yet)
+    const { x, y } = payload ?? {};
+    if (!isValidPoint(x, y)) return;
+    socket.volatile.to(boardId).emit("cursor:moved", {
+      socketId: socket.id,
+      name: user.name,
+      color: user.color,
+      x,
+      y,
+    });
+  });
+
+  socket.on("cursor:leave", () => {
+    const boardId = socket.data.boardId;
+    if (!boardId) return;
+    socket.to(boardId).emit("cursor:left", { socketId: socket.id });
   });
 
   // By the time "disconnect" fires, Socket.IO has already removed the socket

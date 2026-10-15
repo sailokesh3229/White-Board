@@ -7,7 +7,18 @@ import { drawDot, drawElement, drawSegment, redrawAll } from "../lib/draw.js";
 const CURSORS = { pen: "crosshair", eraser: "cell", rect: "crosshair", circle: "crosshair", line: "crosshair" };
 const SHAPE_BUILDERS = { rect: makeRect, circle: makeCircle, line: makeLine };
 
-export default function Canvas({ ref, tool, color, size, userId, disabled, onElementCreated }) {
+export default function Canvas({
+  ref,
+  tool,
+  color,
+  size,
+  userId,
+  disabled,
+  onElementCreated,
+  onCursorMove,
+  onCursorLeave,
+  children,
+}) {
   const mainRef = useRef(null); // finished elements
   const previewRef = useRef(null); // only the shape being dragged right now
   // Board data lives in refs, not state: a stroke adds dozens of points per
@@ -116,6 +127,12 @@ export default function Canvas({ ref, tool, color, size, userId, disabled, onEle
     drawSegment(mainCtx(), stroke, previous, point);
   }
 
+  // Listened to on the wrapper, so it fires whether or not we're drawing.
+  function handleWrapperPointerMove(event) {
+    const [x, y] = toPoint(event);
+    onCursorMove?.(x, y);
+  }
+
   function handlePointerUp(event) {
     const shape = shapeRef.current;
     if (shape) {
@@ -133,7 +150,7 @@ export default function Canvas({ ref, tool, color, size, userId, disabled, onEle
   }
 
   return (
-    <div className="board-wrapper">
+    <div className="board-wrapper" onPointerMove={handleWrapperPointerMove} onPointerLeave={onCursorLeave}>
       <canvas ref={mainRef} className="main-canvas" width={BOARD_WIDTH} height={BOARD_HEIGHT} />
       <canvas
         ref={previewRef}
@@ -144,6 +161,7 @@ export default function Canvas({ ref, tool, color, size, userId, disabled, onEle
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       />
+      {children}
       {disabled && <div className="board-overlay">Loading board…</div>}
     </div>
   );

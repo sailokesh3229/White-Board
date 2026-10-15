@@ -266,6 +266,35 @@ button {
   pointer-events: none;
 }
 
+/* Other users' cursors. pointer-events: none so they never block drawing. */
+.cursor-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.remote-cursor {
+  position: absolute;
+  /* Glide between the ~20 updates per second instead of jumping. */
+  transition: left 80ms linear, top 80ms linear;
+}
+
+.remote-cursor svg {
+  display: block;
+}
+
+.remote-cursor-label {
+  position: absolute;
+  top: 16px;
+  left: 12px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
 /* The preview canvas sits on top and receives all pointer events. */
 .board-wrapper .main-canvas {
   pointer-events: none;

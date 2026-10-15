@@ -5,6 +5,19 @@ const USER_ID_REGEX = /^u_[A-Za-z0-9_-]{1,32}$/;
 const DEFAULT_NAME = "Guest";
 const DEFAULT_COLOR = "#868e96";
 
+// Board coordinates may go a little past the edges (a stroke can start or end
+// just outside the board), but not wildly far.
+const MIN_X = -100;
+const MAX_X = 1700;
+const MIN_Y = -100;
+const MAX_Y = 1000;
+
+export function isValidPoint(x, y) {
+  return (
+    Number.isFinite(x) && Number.isFinite(y) && x >= MIN_X && x <= MAX_X && y >= MIN_Y && y <= MAX_Y
+  );
+}
+
 export function isValidBoardId(boardId) {
   return typeof boardId === "string" && BOARD_ID_REGEX.test(boardId);
 }

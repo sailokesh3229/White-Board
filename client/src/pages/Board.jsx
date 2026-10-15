@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Canvas from "../components/Canvas.jsx";
 import Toolbar from "../components/Toolbar.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
 import OnlineUsers from "../components/OnlineUsers.jsx";
 import NamePrompt from "../components/NamePrompt.jsx";
+import CursorLayer from "../components/CursorLayer.jsx";
+import { throttle } from "../lib/throttle.js";
 import { socket } from "../lib/socket.js";
-import { BOARD_ID_REGEX } from "../lib/constants.js";
+import { BOARD_ID_REGEX, CURSOR_THROTTLE_MS } from "../lib/constants.js";
 import { getUser, setName } from "../lib/user.js";
 
 const TOAST_MS = 3000;
@@ -47,12 +49,33 @@ function BoardView({ boardId }) {
   const [users, setUsers] = useState([]);
   const canvasRef = useRef(null);
 
+  // Pointer moves fire hundreds of times per second; throttling keeps cursor
+  // traffic to ~20 messages per second (one per CURSOR_THROTTLE_MS).
+  const sendCursor = useMemo(
+    () => throttle((x, y) => socket.emit("cursor:move", { x, y }), CURSOR_THROTTLE_MS),
+    [],
+  );
+  useEffect(() => () => sendCursor.cancel(), [sendCursor]);
+
   // Connect while the board page is open. In development, React Strict Mode
   // runs this effect twice (mount, cleanup, mount), so the cleanup must really
   // disconnect, or each tab would leave an extra connection open.
   useEffect(() => {
     socket.connect();
+    // Leaving the page (closing the tab, navigating away, or the browser
+    // freezing it in its back/forward cache) should take us off the board
+    // right away, not ~45 s later when the server's heartbeat times out.
+    function onPageHide() {
+      socket.disconnect();
+    }
+    function onPageShow(event) {
+      if (event.persisted) socket.connect(); // restored from the back/forward cache
+    }
+    window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("pageshow", onPageShow);
     return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("pageshow", onPageShow);
       socket.disconnect();
     };
   }, []);
@@ -149,6 +172,11 @@ function BoardView({ boardId }) {
     socket.emit("board:clear");
   }
 
+  function handleCursorLeave() {
+    sendCursor.cancel(); // a late trailing "move" would bring the cursor back
+    socket.emit("cursor:leave");
+  }
+
   function handleNameSubmit(name) {
     setUser(setName(name));
     setRenaming(false);
@@ -197,7 +225,11 @@ function BoardView({ boardId }) {
           userId={user.userId}
           disabled={loading}
           onElementCreated={handleElementCreated}
-        />
+          onCursorMove={sendCursor}
+          onCursorLeave={handleCursorLeave}
+        >
+          <CursorLayer />
+        </Canvas>
         <OnlineUsers users={users} selfId={socket.id} onRename={() => setRenaming(true)} />
       </div>
       {!user.name && <NamePrompt onSubmit={handleNameSubmit} />}
