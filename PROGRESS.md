@@ -53,3 +53,9 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Commit: eff2aa4
 - Tests: server 10 passed, client 18 passed
 - Notes: Client rejects malformed board IDs before connecting (server still validates). `extractBoardId` lives in `client/src/lib/boardLink.js` (new file, with tests). Browser-checked: create board, A↔B sync, C on another board isolated both ways, invalid-board page, join by full URL, in-place board switch leaves the old room. Copy link not verifiable via automation (clipboard needs a real user click) — manual check.
+
+## Phase 7 — Late joiners, in-memory store (2026-10-15)
+- Status: done, awaiting manual verification
+- Commit: c44308c
+- Tests: server 17 passed, client 18 passed
+- Notes: Store caches the load *promise* per board (concurrent joins share one load) and queues writes per board so the database keeps element order. Store also exposes `flush(boardId)` (for tests). A stale `board:state` is not sent if the socket switched boards during the load. Browser-checked: tab B reloaded and received A's pen stroke, rectangle and eraser stroke; other board stays empty. Expected limitation: memory is wiped on server restart (fixed in Phase 8).
