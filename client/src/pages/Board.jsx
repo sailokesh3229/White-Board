@@ -12,6 +12,7 @@ import { BOARD_ID_REGEX, CURSOR_THROTTLE_MS } from "../lib/constants.js";
 import { getUser, setName } from "../lib/user.js";
 
 const TOAST_MS = 3000;
+const SHORTCUTS = { p: "pen", e: "eraser", r: "rect", c: "circle", l: "line" };
 
 export default function Board() {
   const { boardId } = useParams();
@@ -29,6 +30,11 @@ function InvalidBoard() {
       <Link to="/">Go to the home page</Link>
     </main>
   );
+}
+
+function sendAction(action) {
+  if (action.kind === "add") socket.emit("element:add", { element: action.element });
+  else socket.emit("board:clear");
 }
 
 function BoardView({ boardId }) {
@@ -49,10 +55,19 @@ function BoardView({ boardId }) {
   const [users, setUsers] = useState([]);
   const canvasRef = useRef(null);
 
+  // Outbox: changes we made while we couldn't safely send them (offline, or
+  // reconnected but not yet re-joined). Socket.IO's own buffer isn't enough:
+  // it flushes BEFORE our "connect" handler re-joins the board, so the server
+  // would see drawings from a socket that isn't on any board and drop them.
+  // So we hold them here and send them after board:state confirms the join.
+  const outboxRef = useRef([]); // [{ kind: "add", element } | { kind: "clear" }]
+  const syncedRef = useRef(false); // has this connection received board:state?
+
   // Pointer moves fire hundreds of times per second; throttling keeps cursor
   // traffic to ~20 messages per second (one per CURSOR_THROTTLE_MS).
   const sendCursor = useMemo(
-    () => throttle((x, y) => socket.emit("cursor:move", { x, y }), CURSOR_THROTTLE_MS),
+    // volatile: if we're offline, drop the position instead of queueing it.
+    () => throttle((x, y) => socket.volatile.emit("cursor:move", { x, y }), CURSOR_THROTTLE_MS),
     [],
   );
   useEffect(() => () => sendCursor.cancel(), [sendCursor]);
@@ -80,10 +95,37 @@ function BoardView({ boardId }) {
     };
   }, []);
 
-  // Don't show the previous board's drawing while the next one loads.
+  // Don't show the previous board's drawing while the next one loads, and
+  // never send the previous board's unsent drawings to the new one.
   useEffect(() => {
     canvasRef.current?.clear();
+    outboxRef.current = [];
+    syncedRef.current = false;
   }, [boardId]);
+
+  useEffect(() => {
+    function onDisconnect() {
+      syncedRef.current = false;
+    }
+    socket.on("disconnect", onDisconnect);
+    return () => {
+      socket.off("disconnect", onDisconnect);
+    };
+  }, []);
+
+  // Keyboard shortcuts. Ignored while typing (name prompt, inputs) and when a
+  // modifier is held, so Ctrl+C still copies instead of picking the circle.
+  useEffect(() => {
+    function onKeyDown(event) {
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      const target = event.target;
+      if (target.closest?.("input, textarea, select, [contenteditable='true'], .modal")) return;
+      const shortcut = SHORTCUTS[event.key.toLowerCase()];
+      if (shortcut) setTool(shortcut);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   // Join the board on EVERY connect, not just the first one. After a
   // reconnect the server sees a brand-new socket that isn't in any room yet.
@@ -106,7 +148,7 @@ function BoardView({ boardId }) {
   // otherwise a remount would register a second handler and draw everything twice.
   useEffect(() => {
     function onElementAdded({ element }) {
-      canvasRef.current?.addRemoteElement(element);
+      canvasRef.current?.addElement(element); // skips duplicates by id
     }
     function onBoardCleared({ by }) {
       canvasRef.current?.clear();
@@ -129,7 +171,18 @@ function BoardView({ boardId }) {
   // so a reconnect never shows elements twice.
   useEffect(() => {
     function onBoardState({ elements }) {
-      canvasRef.current?.replaceAll(elements);
+      const canvas = canvasRef.current;
+      canvas?.replaceAll(elements);
+      // We're on the board again: replay what we did while offline, in order.
+      const pending = outboxRef.current;
+      outboxRef.current = [];
+      syncedRef.current = true;
+      for (const action of pending) {
+        if (action.kind === "clear") canvas?.clear();
+        // addElement returns false if the server already had it: don't resend.
+        else if (canvas && !canvas.addElement(action.element)) continue;
+        sendAction(action);
+      }
       setLoadedBoardId(boardId);
     }
     socket.on("board:state", onBoardState);
@@ -162,19 +215,24 @@ function BoardView({ boardId }) {
     return () => clearTimeout(timer);
   }, [copied]);
 
+  function sendOrQueue(action) {
+    if (syncedRef.current && socket.connected) sendAction(action);
+    else outboxRef.current.push(action);
+  }
+
   function handleElementCreated(element) {
-    socket.emit("element:add", { element });
+    sendOrQueue({ kind: "add", element });
   }
 
   function handleClear() {
     if (!window.confirm("Clear the whole board?")) return;
     canvasRef.current.clear();
-    socket.emit("board:clear");
+    sendOrQueue({ kind: "clear" });
   }
 
   function handleCursorLeave() {
     sendCursor.cancel(); // a late trailing "move" would bring the cursor back
-    socket.emit("cursor:leave");
+    socket.volatile.emit("cursor:leave");
   }
 
   function handleNameSubmit(name) {

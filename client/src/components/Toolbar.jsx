@@ -1,11 +1,11 @@
 import { MIN_SIZE, MAX_SIZE } from "../lib/constants.js";
 
 const TOOLS = [
-  { id: "pen", label: "Pen" },
-  { id: "eraser", label: "Eraser" },
-  { id: "rect", label: "Rectangle" },
-  { id: "circle", label: "Circle" },
-  { id: "line", label: "Line" },
+  { id: "pen", label: "Pen", key: "P" },
+  { id: "eraser", label: "Eraser", key: "E" },
+  { id: "rect", label: "Rectangle", key: "R" },
+  { id: "circle", label: "Circle", key: "C" },
+  { id: "line", label: "Line", key: "L" },
 ];
 
 const SWATCHES = [
@@ -29,7 +29,8 @@ export default function Toolbar({ tool, color, size, onToolChange, onColorChange
             type="button"
             className="tool-button"
             aria-pressed={tool === t.id}
-            title={t.label}
+            title={`${t.label} (${t.key})`}
+            aria-keyshortcuts={t.key}
             onClick={() => onToolChange(t.id)}
           >
             {t.label}

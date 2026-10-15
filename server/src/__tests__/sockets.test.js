@@ -36,7 +36,7 @@ const sampleElement = {
   y1: 20,
   x2: 300,
   y2: 400,
-  createdBy: "u_test",
+  createdBy: "u_test1234",
   createdAt: 1730000000000,
 };
 
@@ -377,5 +377,60 @@ describe("live cursors", () => {
     const cSees = receivedWithin(c, "cursor:moved");
     a.emit("cursor:move", { x: 10, y: 10 });
     expect(await cSees).toBe(false);
+  });
+});
+
+describe("hardening", () => {
+  it("rejects an invalid element: sender gets error:message, others nothing, store unchanged", async () => {
+    const a = await newClient(BOARD_X);
+    const b = await newClient(BOARD_X);
+
+    const error = waitFor(a, "error:message");
+    const bGetsIt = receivedWithin(b, "element:added");
+    a.emit("element:add", { element: { type: "hack" } });
+
+    expect((await error).message).toMatch(/rejected/);
+    expect(await bGetsIt).toBe(false);
+    expect(await server.store.getElements(BOARD_X)).toEqual([]);
+    expect(a.connected).toBe(true);
+  });
+
+  it("stores and forwards only the clean copy of an element", async () => {
+    const a = await newClient(BOARD_X);
+    const b = await newClient(BOARD_X);
+
+    const bGetsIt = waitFor(b, "element:added");
+    a.emit("element:add", { element: { ...sampleElement, evil: "x".repeat(500), createdBy: "u_liar" } });
+
+    const { element } = await bGetsIt;
+    expect(element).toEqual(sampleElement); // extra field gone, createdBy taken from the server's presence
+    expect(await server.store.getElements(BOARD_X)).toEqual([sampleElement]);
+  });
+
+  it("rejects elements once the board is full", async () => {
+    await server.close();
+    server = await startTestServer({ maxElements: 2 });
+
+    const a = await newClient(BOARD_X);
+    const b = await newClient(BOARD_X);
+    for (const id of ["el_1", "el_2"]) {
+      const added = waitFor(b, "element:added");
+      a.emit("element:add", { element: { ...sampleElement, id } });
+      await added;
+    }
+
+    const error = waitFor(a, "error:message");
+    const bGetsIt = receivedWithin(b, "element:added");
+    a.emit("element:add", { element: { ...sampleElement, id: "el_3" } });
+    expect(await error).toEqual({ message: "Board is full" });
+    expect(await bGetsIt).toBe(false);
+    expect(await server.store.getElements(BOARD_X)).toHaveLength(2);
+  });
+
+  it("disconnects a client that sends a message over ~1 MB", async () => {
+    const a = await newClient(BOARD_X);
+    const disconnected = waitFor(a, "disconnect", 2000);
+    a.emit("element:add", { element: { ...sampleElement, padding: "x".repeat(1_100_000) } });
+    expect(await disconnected).toBeTruthy();
   });
 });

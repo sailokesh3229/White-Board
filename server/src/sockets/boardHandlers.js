@@ -1,4 +1,5 @@
-import { isValidBoardId, isValidPoint, sanitizeUser } from "../validate.js";
+import { cleanElement, isValidBoardId, isValidPoint, sanitizeUser } from "../validate.js";
+import { MAX_ELEMENTS_PER_BOARD } from "../constants.js";
 
 // All board-related events for one connected socket.
 //
@@ -13,7 +14,11 @@ import { isValidBoardId, isValidPoint, sanitizeUser } from "../validate.js";
 //
 // Database calls can fail, so every async handler catches its errors: one bad
 // board must never crash the server for everyone else.
-export function registerBoardHandlers(io, socket, { store, presence, logger = console }) {
+export function registerBoardHandlers(
+  io,
+  socket,
+  { store, presence, logger = console, maxElements = MAX_ELEMENTS_PER_BOARD },
+) {
   // Once nobody is left on a board, drop it from memory. It is reloaded
   // from the database the next time someone joins.
   function evictIfEmpty(boardId) {
@@ -81,10 +86,26 @@ export function registerBoardHandlers(io, socket, { store, presence, logger = co
   socket.on("element:add", async (payload) => {
     const boardId = socket.data.boardId;
     if (!boardId) return; // never joined a board: ignore
-    const element = payload?.element;
-    if (!element) return; // full validation arrives in Phase 11
+
+    // Never trust the client: reject anything malformed, and store/forward
+    // only the clean copy, never the object we were sent.
+    const { element, error } = cleanElement(payload?.element);
+    if (error) {
+      logger.warn(`[board ${boardId}] rejected element from ${nameOf(boardId)}: ${error}`);
+      socket.emit("error:message", { message: `Drawing rejected (${error})` });
+      return;
+    }
+    // The server knows who sent it; don't rely on what the client claims.
+    element.createdBy = presence.getUser(boardId, socket.id)?.userId ?? element.createdBy;
 
     try {
+      // One board document must stay well below MongoDB's 16 MB limit.
+      const elements = await store.getElements(boardId);
+      if (elements.length >= maxElements) {
+        logger.warn(`[board ${boardId}] rejected element from ${nameOf(boardId)}: board full`);
+        socket.emit("error:message", { message: "Board is full" });
+        return;
+      }
       // Store BEFORE broadcasting, so anyone joining a moment later gets it in
       // board:state. (The database write itself continues in the background.)
       await store.addElement(boardId, element);

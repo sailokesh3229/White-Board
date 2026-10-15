@@ -1,6 +1,6 @@
 import { useImperativeHandle, useRef } from "react";
 import { nanoid } from "nanoid";
-import { BOARD_WIDTH, BOARD_HEIGHT } from "../lib/constants.js";
+import { BOARD_WIDTH, BOARD_HEIGHT, MAX_POINTS_PER_STROKE } from "../lib/constants.js";
 import { getBoardPoint, roundPoint, makeRect, makeCircle, makeLine, isTooSmall } from "../lib/geometry.js";
 import { drawDot, drawElement, drawSegment, redrawAll } from "../lib/draw.js";
 
@@ -26,6 +26,9 @@ export default function Canvas({
   const elementsRef = useRef([]);
   const strokeRef = useRef(null); // the stroke being drawn right now
   const shapeRef = useRef(null); // { type, start } of the shape being dragged
+  // Only one pointer draws at a time: a second finger on a touch screen is
+  // ignored instead of creating stray lines.
+  const activePointerRef = useRef(null);
 
   function mainCtx() {
     return mainRef.current.getContext("2d");
@@ -51,9 +54,13 @@ export default function Canvas({
       redrawAll(mainCtx(), elementsRef.current);
       if (strokeRef.current) drawElement(mainCtx(), strokeRef.current);
     },
-    addRemoteElement(element) {
+    // Ignores an element we already have (same id), so nothing is ever drawn
+    // twice, e.g. after a reconnect. Returns whether it was added.
+    addElement(element) {
+      if (elementsRef.current.some((existing) => existing.id === element.id)) return false;
       elementsRef.current.push(element);
       drawElement(mainCtx(), element);
+      return true;
     },
   }));
 
@@ -92,6 +99,8 @@ export default function Canvas({
   function handlePointerDown(event) {
     if (disabled) return; // e.g. while the board is loading
     if (event.button !== 0) return; // only the main mouse button / a touch / a pen tip
+    if (activePointerRef.current !== null) return; // already drawing with another pointer
+    activePointerRef.current = event.pointerId;
     // Keep receiving moves even if the pointer leaves the canvas mid-drag.
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = toPoint(event);
@@ -107,6 +116,7 @@ export default function Canvas({
   }
 
   function handlePointerMove(event) {
+    if (event.pointerId !== activePointerRef.current) return;
     const shape = shapeRef.current;
     if (shape) {
       // Clearing first means old previews never leave a "trail".
@@ -125,6 +135,13 @@ export default function Canvas({
 
     stroke.points.push(point);
     drawSegment(mainCtx(), stroke, previous, point);
+
+    // The server rejects strokes over MAX_POINTS_PER_STROKE points, so a very
+    // long stroke is sent in pieces; the next piece starts where this one ended.
+    if (stroke.points.length >= MAX_POINTS_PER_STROKE) {
+      commitElement(stroke);
+      strokeRef.current = newElement({ type: "stroke", tool: stroke.tool, points: [point] });
+    }
   }
 
   // Listened to on the wrapper, so it fires whether or not we're drawing.
@@ -133,7 +150,11 @@ export default function Canvas({
     onCursorMove?.(x, y);
   }
 
+  // pointercancel (e.g. the browser takes over the touch) ends the stroke the
+  // same way as lifting the pointer, so nothing is left half-drawn.
   function handlePointerUp(event) {
+    if (event.pointerId !== activePointerRef.current) return;
+    activePointerRef.current = null;
     const shape = shapeRef.current;
     if (shape) {
       shapeRef.current = null;
@@ -160,6 +181,7 @@ export default function Canvas({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
       />
       {children}
       {disabled && <div className="board-overlay">Loading board…</div>}

@@ -15,6 +15,7 @@ export function createServer({
   logger = console,
   store = createBoardStore(createMemoryPersistence(), { logger }),
   presence = createPresence(),
+  maxElements,
 } = {}) {
   const app = express();
 
@@ -30,11 +31,14 @@ export function createServer({
   const httpServer = http.createServer(app);
   const io = new Server(httpServer, {
     cors: { origin: clientOrigin },
+    // Reject any single message over ~1 MB (a max-size stroke is far smaller),
+    // so one client can't make the server parse huge payloads.
+    maxHttpBufferSize: 1e6,
   });
 
   io.on("connection", (socket) => {
     logger.log(`connected ${socket.id}`);
-    registerBoardHandlers(io, socket, { store, presence, logger });
+    registerBoardHandlers(io, socket, { store, presence, logger, maxElements });
 
     socket.on("disconnect", (reason) => {
       logger.log(`disconnected ${socket.id} ${reason}`);

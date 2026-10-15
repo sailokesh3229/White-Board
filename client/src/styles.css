@@ -239,8 +239,11 @@ button {
    The canvas itself stays transparent so the eraser (Phase 2) reveals white. */
 .board-wrapper {
   position: relative;
-  width: 100%;
-  max-width: 1600px;
+  /* As wide as possible, but never so tall that the bottom of the board is
+     off screen: the height left under the header and toolbar (~150px),
+     times 16/9, gives the widest board that still fits. */
+  width: min(100%, 1600px, max(320px, calc((100dvh - 150px) * 16 / 9)));
+  margin: 0 auto;
   aspect-ratio: 16 / 9;
   background: #fff;
   border: 1px solid #d4d4d8;
@@ -386,4 +389,33 @@ button {
   border-radius: 6px;
   background: #fff;
   color: #e03131;
+}
+
+/* Phones: tighter spacing and a slightly smaller toolbar. */
+@media (max-width: 600px) {
+  .board-page {
+    padding: 8px;
+  }
+
+  .toolbar {
+    gap: 6px 10px;
+    padding: 6px;
+  }
+
+  .tool-button {
+    padding: 6px 8px;
+  }
+
+  .swatch {
+    width: 22px;
+    height: 22px;
+  }
+
+  .clear-button {
+    margin-left: 0;
+  }
+
+  .size-control input[type="range"] {
+    width: 100px;
+  }
 }
