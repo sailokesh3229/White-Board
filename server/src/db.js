@@ -11,12 +11,14 @@ export async function connectDB(uri) {
     console.log(`Connected to MongoDB at ${hidePassword(uri)}`);
   } catch (err) {
     console.error(`Could not connect to MongoDB at ${hidePassword(uri)}: ${err.message}`);
-    console.error("Is MongoDB running, and is MONGODB_URI in server/.env correct? See README.md.");
+    console.error("Is MongoDB running, and is MONGODB_URI correct (server/.env locally, or your host's environment variables)? See README.md.");
     process.exit(1);
   }
 }
 
 // Never print database passwords (Atlas URIs contain them) to the logs.
-function hidePassword(uri) {
-  return uri.replace(/\/\/[^@/]*@/, "//***@");
+// Greedy up to the LAST "@" before the host, so a password that itself
+// contains an "@" is still fully hidden.
+export function hidePassword(uri) {
+  return uri.replace(/\/\/[^/?#]*@/, "//***@");
 }
