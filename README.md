@@ -1,5 +1,7 @@
 # Folio — collaborative canvas for ideas
 
+Live app: [folio-lokesh-20261026.azurewebsites.net](https://folio-lokesh-20261026.azurewebsites.net/). Hosted on Azure App Service Linux F1 Free in East Asia, with MongoDB Atlas for storage.
+
 Folio turns a shared whiteboard into a creative studio. Draw, write, annotate pictures, organize work across pages, and present the result from one link. The editor combines a slide deck, live canvas, and tablet companion surface. It is built with React Canvas and Socket.IO, without a whiteboard SDK.
 
 ## Features
@@ -62,7 +64,7 @@ These instructions describe the studio-only release. The account-enabled release
 3. Create a Vercel project from the same repository. Root directory: client. Framework: Vite. Build command: npm run build. Output directory: dist. Set VITE_SERVER_URL to the Render HTTPS service URL without a trailing slash. client/vercel.json handles deep links.
 4. Redeploy both services after environment changes. Open Render /health and a fresh Vercel workspace. Open the same link on two devices to confirm live collaboration.
 
-The existing deployment is https://white-board-ohxu.vercel.app. The client and server must both be deployed from the upgraded commit.
+The previous studio-only deployment was https://white-board-ohxu.vercel.app. The Azure link above is the account-enabled release.
 
 ## Checks
 
