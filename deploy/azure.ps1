@@ -1,5 +1,5 @@
 param(
-  [string]$Location = 'centralindia',
+  [string]$Location = 'eastasia',
   [string]$ResourceGroup = 'folio-project',
   [string]$AppName = 'folio-lokesh-20261026'
 )
@@ -25,7 +25,8 @@ if (!$mongoUri) {
 }
 if (!$mongoUri -or $mongoUri -match '(localhost|127\.0\.0\.1)' -or $mongoUri -notmatch '^mongodb(\+srv)?://') { throw 'Set the Atlas MONGODB_URI in server/.env before deploying. It will not be printed.' }
 Write-Output "Deploying to Azure subscription: $($account.name). Hosting tier: F1 Free."
-Invoke-Azure group create --name $ResourceGroup --location $Location --output none
+$groupExists = Invoke-Azure group exists --name $ResourceGroup --output tsv
+if ($groupExists -ne 'true') { Invoke-Azure group create --name $ResourceGroup --location $Location --output none }
 Invoke-Azure appservice plan create --resource-group $ResourceGroup --name 'folio-free-plan' --is-linux --sku F1 --location $Location --output none
 Invoke-Azure webapp create --resource-group $ResourceGroup --plan 'folio-free-plan' --name $AppName --runtime 'NODE:22-lts' --https-only true --output none
 Invoke-Azure webapp config set --resource-group $ResourceGroup --name $AppName --web-sockets-enabled true --startup-file 'npm start' --output none
