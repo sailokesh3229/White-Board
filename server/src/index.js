@@ -4,6 +4,8 @@ import { connectDB } from "./db.js";
 import { createBoardStore } from "./boardStore.js";
 import { createMongoPersistence } from "./persistence/mongoPersistence.js";
 import { parseOrigins } from "./config.js";
+import { createStudioStore } from "./studioStore.js";
+import { Board } from "./models/Board.js";
 
 // Hosts like Render and Railway choose the port and pass it in PORT.
 const PORT = Number(process.env.PORT) || 4000;
@@ -15,7 +17,11 @@ const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/whiteb
 await connectDB(MONGODB_URI);
 
 const store = createBoardStore(createMongoPersistence());
-const { httpServer } = createServer({ clientOrigin: CLIENT_ORIGINS, store });
+const studio = createStudioStore({
+  load: boardId => Board.findOne({ boardId }).lean(),
+  save: (boardId, state) => Board.updateOne({ boardId }, { $set: { studio: state } }, { upsert: true }),
+});
+const { httpServer } = createServer({ clientOrigin: CLIENT_ORIGINS, store, studio });
 
 httpServer.listen(PORT, () => {
   console.log(`Server listening on ${PORT}, allowing ${CLIENT_ORIGINS.join(", ")}`);

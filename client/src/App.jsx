@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "./pages/Home.jsx";
-import Board from "./pages/Board.jsx";
+import Home from "./pages/HomeStudio.jsx";
+import Board from "./pages/BoardStudio.jsx";
 
 export default function App() {
   return (

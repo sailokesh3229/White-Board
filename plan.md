@@ -1,5 +1,16 @@
 # plan.md — Implementation Plan for Claude Code
 
+## Approved v2 delivery — 2026-10-26
+
+The user approved major upgrades and asked for delivery today without pausing for instructional reports at each step. This supersedes the v1 feature exclusions and one-phase pauses for this upgrade.
+
+1. Add a versioned studio document and serialized, acknowledged editing protocol; preserve v1 boards and tests. Save images separately from the board document with bounded uploads.
+2. Replace the basic workspace with a polished responsive studio: editable text/notes, images, selection/move/resize/lock/order/delete, undo/redo, pen/highlighter/shapes/arrows, zoom/pan.
+3. Add up to 20 autosaved pages, thumbnails, names, add/duplicate/delete/navigation, backgrounds and useful templates, presentation mode, PNG/print-PDF export, and a tablet-friendly mode.
+4. Run unit/integration/build checks and browser acceptance checks. Preserve existing deployed data and document deployment steps and remaining limitations.
+
+Autosave replaces repeated save/discard prompts on each page switch. Persistent saves are acknowledged by the server; pending edits remain recoverable after reconnect. Presentation uses pages as slides. Learning/explanation features are secondary to delivering a stable submission.
+
 > **Project:** Real-time collaborative whiteboard (coursework / learning project)
 > **Companion document:** `spec.md` is the source of truth for features, data model, event protocol, and verification checklists. This file tells you (Claude Code) **how and in what order** to build it.
 

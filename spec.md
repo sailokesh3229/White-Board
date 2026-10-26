@@ -1,5 +1,7 @@
 # Real-Time Collaborative Whiteboard — Project Specification
 
+> **Approved v2 upgrade (2026-10-26):** The user approved a submission-focused studio redesign, editable text and notes, persistent image annotation, object manipulation, undo/redo, touch writing, zoom, up to 20 slide-like pages, presentation and export. These supersede the v1 out-of-scope list below. Existing boards must remain readable. Page switching autosaves; deleting a page requires confirmation. No accounts, paid AI services, or new external upload service are required for this release.
+
 > A step-by-step build and verification guide. Every step ends with a **working, testable app** and a checklist you can tick off before moving on. Do not start a step until every box in the previous step is checked.
 
 ---

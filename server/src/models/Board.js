@@ -9,6 +9,7 @@ const boardSchema = new Schema(
   {
     boardId: { type: String, required: true, unique: true, index: true },
     elements: { type: [Schema.Types.Mixed], default: [] },
+    studio: { type: Schema.Types.Mixed, default: undefined },
   },
   { timestamps: true },
 );

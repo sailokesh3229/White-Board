@@ -6,6 +6,9 @@ import { registerBoardHandlers } from "./sockets/boardHandlers.js";
 import { createBoardStore } from "./boardStore.js";
 import { createMemoryPersistence } from "./persistence/memoryPersistence.js";
 import { createPresence } from "./presence.js";
+import { createStudioStore } from "./studioStore.js";
+import { registerStudioHandlers } from "./studioHandlers.js";
+import { registerAssetRoutes } from "./assets.js";
 
 // Builds the HTTP + Socket.IO server without starting it, so tests can create
 // as many isolated servers as they like (each on a random port) and no test
@@ -16,12 +19,14 @@ export function createServer({
   store = createBoardStore(createMemoryPersistence(), { logger }),
   presence = createPresence(),
   maxElements,
+  studio = createStudioStore(),
 } = {}) {
   const app = express();
 
   // Only the client app may call this server from a browser. clientOrigin is
   // one origin or an array of them (see config.js).
   app.use(cors({ origin: clientOrigin }));
+  registerAssetRoutes(app);
 
   app.get("/health", (req, res) => {
     res.json({ ok: true });
@@ -40,6 +45,7 @@ export function createServer({
   io.on("connection", (socket) => {
     logger.log(`connected ${socket.id}`);
     registerBoardHandlers(io, socket, { store, presence, logger, maxElements });
+    registerStudioHandlers(io, socket, { studio, presence, logger });
 
     socket.on("disconnect", (reason) => {
       logger.log(`disconnected ${socket.id} ${reason}`);
