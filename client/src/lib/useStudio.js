@@ -7,7 +7,7 @@ export function useStudio(boardId,user,onError) {
   const [view,setView]=useState(null),[saveStatus,setSaveStatus]=useState("connecting"),[users,setUsers]=useState([]);
   const base=useRef(null),pending=useRef([]),ready=useRef(false),sending=useRef(false),flushRef=useRef(null),errorRef=useRef(onError);
   useEffect(()=>{errorRef.current=onError;},[onError]);
-  const key=`studio:pending:${boardId}`;
+  const key=`studio:pending:${user.userId}:${boardId}`;
   const persist=useCallback(()=>{try{localStorage.setItem(key,JSON.stringify(pending.current));}catch{/* Memory still holds the queue if browser storage fills. */}},[key]);
   const render=useCallback(()=>{
     if(!base.current)return;

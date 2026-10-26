@@ -95,3 +95,8 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Scope: new Folio home and responsive studio, 20 autosaved pages, templates, editable text and notes, compressed image uploads, annotations, selection and transforms, undo/redo, presentation, backgrounds, PNG and print-PDF export, tablet mode, live collaborators, and reconnecting local outbox.
 - Compatibility: legacy boards migrate into the first page on load. The original server protocol and tests remain available.
 - Checks: server 106 tests passed; client 22 tests passed; client build and lint passed. Headless Chrome confirmed page add, text entry, undo/redo, pen drawing, reload persistence, offline edit replay, Brainstorm template, and mobile layout without horizontal overflow. Image upload route has mocked database integration coverage; live Atlas upload still needs a deployment check. Browser/server domain copies are checked for equality so each hosting service can build within its own root directory.
+
+## Accounts and Azure follow-up (2026-10-26)
+- Added sign-up, sign-in, sign-out, salted scrypt passwords, expiring hashed database sessions, HttpOnly cookies, login rate limits, origin checks, and authenticated sockets/images. Local edit queues and recent workspaces are scoped to account IDs.
+- Added same-origin client hosting and an Azure F1 Free deployment script. Image APIs use /api/assets so they do not intercept the frontend's /assets bundles.
+- Checks: server 112 tests passed; client build/lint passed; browser confirmed account creation, authenticated workspace opening, sign-out redirect, and sign-in returning to the requested workspace. Azure deployment awaits user sign-in and an Atlas URI.

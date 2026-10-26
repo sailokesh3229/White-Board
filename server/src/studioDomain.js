@@ -92,7 +92,8 @@ export function applyStudioAction(state, action, { trusted = false } = {}) {
     if (!page) throw new Error("Page not found");
     const i = page.elements.findIndex(e => e.id === action.objectId);
     if (i < 0 || !["front", "back"].includes(action.position)) throw new Error("Invalid object order");
-    const [e] = page.elements.splice(i, 1); action.position === "front" ? page.elements.push(e) : page.elements.unshift(e);
+    const [e] = page.elements.splice(i, 1);
+    if (action.position === "front") page.elements.push(e); else page.elements.unshift(e);
   } else if (action.type === "title") {
     if (typeof action.title !== "string") throw new Error("Invalid title");
     next.title = action.title.trim().slice(0, 80) || "Untitled workspace";

@@ -13,7 +13,7 @@ Folio turns a shared whiteboard into a creative studio. Draw, write, annotate pi
 - Choose paper backgrounds, temporarily hide annotations, present pages as slides, export a PNG, or print the deck to PDF.
 - Keep editing during a temporary disconnection. Pending edits are stored locally and replayed with receipt IDs after reconnection. Object versions prevent silent overwrites of newer work.
 
-Anyone with a workspace URL can edit it. Folio has no accounts or private permissions, so use it for coursework and group work rather than confidential material.
+Create an account with your name, email, and password, then sign in to edit. Anyone signed in with a workspace URL can collaborate. Recent workspaces and pending local edits are scoped to the account. Passwords use salted scrypt hashes; expiring sessions use HttpOnly cookies and MongoDB. Signing out revokes the session and disconnects its live editor connections. Email verification and password recovery are not configured in this coursework release.
 
 ## Stack
 
@@ -41,7 +41,21 @@ Every workspace is a versioned document with ordered pages and vector objects. T
 
 CLIENT_ORIGIN accepts comma-separated origins. If you open the app at 127.0.0.1 instead of localhost, add that exact origin and point VITE_SERVER_URL to the matching server address. Vite embeds its variable at build time, so rebuild after changing it. Never commit .env files.
 
-## Deploy to Vercel, Render, and MongoDB Atlas
+## Deploy to Azure with MongoDB Atlas
+
+The current account-enabled app serves its frontend, API, uploaded images, and Socket.IO connection from one HTTPS origin. Use Azure App Service Linux F1 Free for the course demo and keep the existing MongoDB Atlas database. F1 has no always-on hosting and allows only five concurrent WebSocket connections.
+
+1. Sign in to an active Azure subscription using Azure CLI. The project deployment script uses the ignored .local/azure configuration directory.
+2. Set the remote Atlas MONGODB_URI in server/.env locally. The script transfers the value into Azure application settings without printing it. Localhost database addresses are rejected.
+3. Commit the tested app, then run: ./deploy/azure.ps1
+4. The script creates only an F1 Free hosting plan, packages the committed source, and asks Azure to build it. Azure runs the root build command and then npm start. The final output contains the Azure app URL.
+5. Check /health, create an account, add a page and an image, reload, and open the same workspace on another device. Keep the previous hosts until these checks pass.
+
+No new paid database, storage account, container registry, or paid hosting tier is requested by the script. Azure subscription availability and regional F1 capacity still apply. The API stores uploaded images and accounts in the existing Atlas database.
+
+## Previous Vercel and Render deployment
+
+These instructions describe the studio-only release. The account-enabled release above is intended for a single Azure origin; splitting cookies between unrelated hosting domains requires additional cookie and credential settings.
 
 1. Create a MongoDB Atlas cluster and database user. Add Render outbound IPs to Atlas Network Access, or use 0.0.0.0/0 for a course demo if fixed IPs are unavailable. Include /whiteboard in the URI and URL-encode special password characters.
 2. Create a Render Web Service from this repository. Root directory: server. Build command: npm install. Start command: npm start. Set MONGODB_URI to the Atlas URI and CLIENT_ORIGIN to the exact Vercel origin, such as https://white-board-ohxu.vercel.app. Render supplies PORT.

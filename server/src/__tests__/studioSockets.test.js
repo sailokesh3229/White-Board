@@ -45,7 +45,7 @@ describe("studio collaboration protocol", () => {
   });
   it("rejects invalid image payloads before trying to write to MongoDB", async () => {
     server = await startTestServer();
-    const response = await fetch(`${server.url}/assets/${boardId}`, { method: "POST", headers: { "content-type": "image/png" }, body: Buffer.from("this is not a PNG") });
+    const response = await fetch(`${server.url}/api/assets/${boardId}`, { method: "POST", headers: { "content-type": "image/png" }, body: Buffer.from("this is not a PNG") });
     expect(response.status).toBe(400);
     expect((await response.json()).error).toMatch(/PNG/);
   });
@@ -55,11 +55,11 @@ describe("studio collaboration protocol", () => {
     vi.spyOn(Asset, "countDocuments").mockResolvedValue(0);
     vi.spyOn(Asset, "create").mockResolvedValue({});
     vi.spyOn(Asset, "findOne").mockReturnValue({ lean: async () => ({ type: "image/webp", data: bytes }) });
-    const upload = await fetch(`${server.url}/assets/${boardId}`, { method: "POST", headers: { "content-type": "image/webp" }, body: bytes });
+    const upload = await fetch(`${server.url}/api/assets/${boardId}`, { method: "POST", headers: { "content-type": "image/webp" }, body: bytes });
     expect(upload.status).toBe(201);
     const { assetId } = await upload.json();
     expect(assetId).toMatch(/^img_/);
-    const image = await fetch(`${server.url}/assets/${assetId}`);
+    const image = await fetch(`${server.url}/api/assets/${assetId}`);
     expect(image.status).toBe(200);
     expect(image.headers.get("content-type")).toMatch(/image\/webp/);
     expect(Buffer.from(await image.arrayBuffer())).toEqual(bytes);

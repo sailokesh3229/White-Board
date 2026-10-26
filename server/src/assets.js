@@ -4,7 +4,7 @@ import { Asset } from "./models/Asset.js";
 import { isValidBoardId } from "./validate.js";
 
 export function registerAssetRoutes(app) {
-  app.post("/assets/:boardId", express.raw({ type: ["image/png", "image/jpeg", "image/webp"], limit: "900kb" }), async (req, res) => {
+  app.post("/api/assets/:boardId", express.raw({ type: ["image/png", "image/jpeg", "image/webp"], limit: "900kb" }), async (req, res) => {
     if (!isValidBoardId(req.params.boardId)) return res.status(400).json({ error: "Invalid workspace" });
     const data = req.body, type = req.get("content-type")?.split(";")[0];
     // Inspect the signature, not just the supplied MIME type; SVG is excluded.
@@ -20,12 +20,12 @@ export function registerAssetRoutes(app) {
       res.status(201).json({ assetId });
     } catch { res.status(503).json({ error: "Upload could not be saved. Please retry." }); }
   });
-  app.get("/assets/:assetId", async (req, res) => {
+  app.get("/api/assets/:assetId", async (req, res) => {
     if (!/^img_[A-Za-z0-9_-]{14}$/.test(req.params.assetId)) return res.sendStatus(404);
     try {
       const asset = await Asset.findOne({ assetId: req.params.assetId }).lean();
       if (!asset) return res.sendStatus(404);
-      res.set({ "Content-Type": asset.type, "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" });
+      res.set({ "Content-Type": asset.type, "Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff" });
       res.send(Buffer.isBuffer(asset.data) ? asset.data : Buffer.from(asset.data.buffer));
     } catch { res.sendStatus(503); }
   });

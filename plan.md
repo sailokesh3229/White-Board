@@ -2,6 +2,10 @@
 
 ## Approved v2 delivery — 2026-10-26
 
+### Approved follow-up: accounts and Azure
+
+The user requested sign-up, sign-in, and migration to Azure after the studio upgrade. Add email/password accounts with hashed passwords, expiring HttpOnly sessions, server-side protection for sockets and images, and account-scoped local edit queues. Serve the client and API from one Azure App Service origin. Deploy only the F1 Free tier unless the user approves another price. Keep the existing hosts available until Azure is verified. Azure account sign-in and a remote Atlas connection string are required to finish deployment.
+
 The user approved major upgrades and asked for delivery today without pausing for instructional reports at each step. This supersedes the v1 feature exclusions and one-phase pauses for this upgrade.
 
 1. Add a versioned studio document and serialized, acknowledged editing protocol; preserve v1 boards and tests. Save images separately from the board document with bounded uploads.

@@ -1,12 +1,13 @@
-export const SERVER_URL = (import.meta.env.VITE_SERVER_URL || "http://localhost:4000").replace(/\/$/, "");
+import { API_URL } from "./api.js";
+export const SERVER_URL = API_URL;
 const images = new Map();
 export function getImage(assetId, onLoad) {
   if (!images.has(assetId)) {
-    const image = new Image(); image.crossOrigin = "anonymous";
+    const image = new Image(); image.crossOrigin = "use-credentials";
     const entry = { image, callbacks: new Set() }; images.set(assetId, entry);
     image.onload = () => { entry.callbacks.forEach(fn => fn()); entry.callbacks.clear(); };
     image.onerror = () => { entry.failed = true; entry.callbacks.forEach(fn => fn()); entry.callbacks.clear(); };
-    image.src = `${SERVER_URL}/assets/${assetId}`;
+    image.src = `${SERVER_URL}/api/assets/${assetId}`;
   }
   const entry = images.get(assetId);
   if (onLoad && !entry.image.complete) entry.callbacks.add(onLoad);
@@ -94,7 +95,7 @@ export async function uploadImage(file,boardId) {
   const c=document.createElement("canvas");c.width=Math.round(bitmap.width*scale);c.height=Math.round(bitmap.height*scale);c.getContext("2d").drawImage(bitmap,0,0,c.width,c.height);bitmap.close();
   const blob=await new Promise(resolve=>c.toBlob(resolve,"image/webp",.8));
   if(!blob||blob.size>900_000)throw new Error("This image is too detailed. Try a smaller image.");
-  const res=await fetch(`${SERVER_URL}/assets/${boardId}`,{method:"POST",headers:{"Content-Type":"image/webp"},body:blob});
+  const res=await fetch(`${SERVER_URL}/api/assets/${boardId}`,{method:"POST",credentials:"include",headers:{"Content-Type":"image/webp"},body:blob});
   const result=await res.json();if(!res.ok)throw new Error(result.error||"Upload failed");
   return {...result,width:c.width,height:c.height};
 }
