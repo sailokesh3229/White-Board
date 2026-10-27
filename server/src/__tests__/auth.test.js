@@ -58,6 +58,20 @@ describe("account authentication", () => {
     await disconnected;
     expect((await request("me", null, account.cookie)).body.user).toBeNull();
   });
+  it("disconnects the replaced session's sockets when signing in again", async () => {
+    await start();
+    const account = await request("register", values);
+    const member = io(server.url, { transports: ["websocket"], reconnection: false, forceNew: true, extraHeaders: { cookie: account.cookie } }); clients.push(member);
+    await waitFor(member, "connect");
+    const disconnected = waitFor(member, "disconnect");
+    const replacement = await request("login", { email: values.email, password: values.password }, account.cookie);
+    expect(replacement.response.status).toBe(200);
+    expect(await disconnected).toBe("io server disconnect");
+    expect((await request("me", null, account.cookie)).body.user).toBeNull();
+    const fresh = io(server.url, { transports: ["websocket"], reconnection: false, forceNew: true, extraHeaders: { cookie: replacement.cookie } }); clients.push(fresh);
+    await waitFor(fresh, "connect");
+    expect(fresh.connected).toBe(true);
+  });
   it("rejects cross-site account writes and weak signup details", async () => {
     await start();
     expect((await request("register", values, null, "https://unrelated.example")).response.status).toBe(403);

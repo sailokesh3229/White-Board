@@ -43,6 +43,18 @@ describe("studio collaboration protocol", () => {
     expect((await a.emitWithAck("studio:action", action)).ok).toBe(true);
     expect((await other.emitWithAck("studio:open", { boardId })).ok).toBe(false);
   });
+  it("rejects malformed event arguments and still accepts a subsequent valid edit", async () => {
+    server = await startTestServer(); const a = await client();
+    for (const payload of [null, false, 42, "invalid", []]) {
+      expect((await a.timeout(1000).emitWithAck("studio:open", payload)).ok).toBe(false);
+    }
+    a.emit("studio:open", null, { not: "a callback" });
+    expect((await a.timeout(1000).emitWithAck("studio:open", { boardId })).ok).toBe(true);
+    a.emit("studio:action", null, { not: "a callback" });
+    expect((await a.timeout(1000).emitWithAck("studio:action", null)).ok).toBe(false);
+    expect((await a.timeout(1000).emitWithAck("studio:action", action)).ok).toBe(true);
+    expect((await fetch(`${server.url}/health`)).status).toBe(200);
+  });
   it("rejects invalid image payloads before trying to write to MongoDB", async () => {
     server = await startTestServer();
     const response = await fetch(`${server.url}/api/assets/${boardId}`, { method: "POST", headers: { "content-type": "image/png" }, body: Buffer.from("this is not a PNG") });

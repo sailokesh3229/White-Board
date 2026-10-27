@@ -75,7 +75,13 @@ export function createAuth({ store, allowedOrigins = [], secure = process.env.NO
   }
   async function session(res, user, oldCookie) {
     const previous = cookieToken(oldCookie);
-    if (previous) await store.deleteSession(hashToken(previous));
+    if (previous) {
+      const previousHash = hashToken(previous);
+      await store.deleteSession(previousHash);
+      // Existing sockets have already passed authentication; revoke them too
+      // when replacing a session, just as explicit logout does.
+      onLogout(previousHash);
+    }
     const token = randomBytes(32).toString("base64url");
     await store.createSession({ tokenHash: hashToken(token), userId: user.userId, expiresAt: new Date(Date.now() + LIFE) });
     res.cookie(COOKIE, token, options);

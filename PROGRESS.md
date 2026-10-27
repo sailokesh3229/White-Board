@@ -101,3 +101,8 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Added same-origin client hosting and an Azure F1 Free deployment script. Image APIs use /api/assets so they do not intercept the frontend's /assets bundles.
 - Checks: server 112 tests and client 22 tests passed; client build/lint passed. Azure F1 Free deployed in East Asia at https://folio-lokesh-20261026.azurewebsites.net. Live checks confirmed /health, account creation, authenticated workspaces, image upload/rendering, annotations, text, live updates between two tabs, and database persistence after reload. Added cross-tab sign-out synchronization and an explicit PNG download link during final acceptance checks.
 - Final acceptance: the deployed release also synchronized login/logout across tabs, preserved accounts and workspace content across site restarts, and prepared a PNG download link with the uploaded image included. Automated collection of blob downloads is unsupported by the connected browser; the explicit link is ready for a normal browser click. Free hosting SKU F1 was verified through Azure. Demo workspace: /board/I54E78cZyN.
+
+## Post-deployment stability review (2026-10-27)
+- Replacing a login session now immediately disconnects its already-authenticated sockets, matching explicit sign-out and preventing the old session from continuing to edit.
+- Studio events validate missing/null payloads and callback arguments. Malformed requests are rejected while subsequent valid edits continue to work.
+- Verification: server 114 tests and client 22 tests passed; client production build, lint, and whitespace checks passed. Added regression coverage for session replacement and malformed socket events.
