@@ -18,3 +18,7 @@
 #print-deck{display:none}
 .studio-modal{max-width:530px}
 .studio-modal .modal-actions .danger-button{background:#ed6e7a;color:#fff;border-color:#ed6e7a}
+
+/* Keep tools reachable when the compact header hides desktop actions. */
+.studio-footer .mobile-more{display:none}
+@media(max-width:760px){.studio-footer .mobile-more{display:inline-flex}}

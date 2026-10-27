@@ -107,3 +107,8 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Studio events validate missing/null payloads and callback arguments. Malformed requests are rejected while subsequent valid edits continue to work.
 - Verification: server 114 tests and client 22 tests passed; client production build, lint, and whitespace checks passed. Added regression coverage for session replacement and malformed socket events.
 - Released patch 8e4e1ef to GitHub master and the existing Azure app. Live API/socket checks confirmed secure cookies, replacement-session revocation, malformed request rejection followed by a successful workspace open, preserved demo pages, and logout revocation. Browser reload confirmed the homepage renders without console errors.
+
+## Live walkthrough usability fixes (2026-10-27)
+- The requested live feature demonstration exposed a compact-layout issue: focusing a page name also closed its drawer. Naming now selects the page while keeping the input visible.
+- Added a compact More tools menu for presentation, export, templates, and reference-image focus, which the mobile header previously hid.
+- Server 114 tests and client 22 tests passed; client build and lint passed. Azure Education overview reported October costs of $0.00 and 100% available credits; hosting remains F1 Free.
