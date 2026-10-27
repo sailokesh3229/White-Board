@@ -113,3 +113,9 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Added a compact More tools menu for presentation, export, templates, and reference-image focus, which the mobile header previously hid.
 - Server 114 tests and client 22 tests passed; client build and lint passed. Azure Education overview reported October costs of $0.00 and 100% available credits; hosting remains F1 Free.
 - Patch 60123a9 is live on Azure. The browser walkthrough confirmed compact page naming, the More tools menu, template/sticky editing, image upload, pen and arrow annotations, undo/redo, reload persistence, reference focus, grid paper, presentation navigation, PNG preparation, tablet sharing, two-tab live edits, layer selection/text styling, zoom, and stylus-only toggle. Saved demo: /board/awOs0letV0 (three pages). Captured an animated replay from actual browser screenshots; physical stylus input and native PDF saving were not exercised.
+
+## Project interview-preparation page (2026-10-27)
+- Added a standalone public page at /interview-preparation.html with 36 project-specific interview/viva questions, sample answers, professor-style follow-ups, and source links pinned to reviewed release 34144cf.
+- Topics cover the project pitch, Canvas/React, collaboration/persistence, authentication, Azure deployment, and realistic debugging scenarios. Answers explicitly distinguish implemented behavior, current limitations, and future improvements.
+- Includes search, topic filters, collapsed answers, randomized mock interviews, browser-local practice marks, and a print/PDF action. No sign-in, external assets, new dependencies, or new hosting service required.
+- Checks: 114 server tests and 22 client tests passed; client build/lint passed. Local browser verified search, topic filtering, expand/collapse, mock-question answer reveal/next, and practice-mark persistence after reload.

@@ -2,6 +2,8 @@
 
 Live app: [folio-lokesh-20261026.azurewebsites.net](https://folio-lokesh-20261026.azurewebsites.net/). Hosted on Azure App Service Linux F1 Free in East Asia, with MongoDB Atlas for storage.
 
+Project viva: [Interview preparation](https://folio-lokesh-20261026.azurewebsites.net/interview-preparation.html) — 36 code-grounded questions with sample answers, follow-ups, and a mock-interview mode. No sign-in required.
+
 Folio turns a shared whiteboard into a creative studio. Draw, write, annotate pictures, organize work across pages, and present the result from one link. The editor combines a slide deck, live canvas, and tablet companion surface. It is built with React Canvas and Socket.IO, without a whiteboard SDK.
 
 ## Features
