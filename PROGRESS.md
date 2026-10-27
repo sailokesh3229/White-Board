@@ -119,3 +119,7 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Topics cover the project pitch, Canvas/React, collaboration/persistence, authentication, Azure deployment, and realistic debugging scenarios. Answers explicitly distinguish implemented behavior, current limitations, and future improvements.
 - Includes search, topic filters, collapsed answers, randomized mock interviews, browser-local practice marks, and a print/PDF action. No sign-in, external assets, new dependencies, or new hosting service required.
 - Checks: 114 server tests and 22 client tests passed; client build/lint passed. Local browser verified search, topic filtering, expand/collapse, mock-question answer reveal/next, and practice-mark persistence after reload.
+
+### Simplified interview page (2026-10-27)
+- At the user's request, reduced the page to exactly 15 easy-to-medium project questions with short sample answers. Removed preparation instructions, follow-up prompts, practice guidance, and mock-interview content from the page.
+- Retained topic filters, search, expandable answers, and print/PDF controls. Client build/lint, JavaScript syntax, and the question count checks passed.
