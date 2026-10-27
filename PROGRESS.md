@@ -106,3 +106,4 @@ Real-time collaborative whiteboard. One entry per phase (see plan.md Section 6.2
 - Replacing a login session now immediately disconnects its already-authenticated sockets, matching explicit sign-out and preventing the old session from continuing to edit.
 - Studio events validate missing/null payloads and callback arguments. Malformed requests are rejected while subsequent valid edits continue to work.
 - Verification: server 114 tests and client 22 tests passed; client production build, lint, and whitespace checks passed. Added regression coverage for session replacement and malformed socket events.
+- Released patch 8e4e1ef to GitHub master and the existing Azure app. Live API/socket checks confirmed secure cookies, replacement-session revocation, malformed request rejection followed by a successful workspace open, preserved demo pages, and logout revocation. Browser reload confirmed the homepage renders without console errors.
